@@ -165,6 +165,8 @@ Sprite *gf2d_sprite_load_all(
         return NULL;
     }
     SDL_SetTextureBlendMode(sprite->texture,SDL_BLENDMODE_BLEND);        
+    SDL_SetTextureScaleMode(sprite->texture,SDL_ScaleModeNearest);
+    
     SDL_UpdateTexture(sprite->texture,
                     NULL,
                     surface->pixels,
