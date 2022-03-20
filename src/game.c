@@ -1,13 +1,22 @@
 #include <SDL.h>
 #include "gf2d_graphics.h"
 #include "gf2d_sprite.h"
+#include "gfc_input.h"
 #include "simple_logger.h"
 
 #include "pg_entity.h"
 #include "pg_ui.h"
 
+#include "camera.h"
 #include "player.h"
 #include "map.h"
+#include "inventory.h"
+
+typedef enum {
+    PLAY,
+    MENU,
+    TEXTBOX //?
+} gamestate;
 
 int main(int argc, char * argv[])
 {
@@ -17,10 +26,14 @@ int main(int argc, char * argv[])
     Sprite *sprite;
     Entity* ent;
 
+    gamestate state = PLAY;
+
     int mx,my;
     float mf = 0;
     Sprite *mouse;
     Vector4D mouseColor = {255,100,255,200};
+    
+    srand(time(0));
     
     /*program initializtion*/
     init_logger("gf2d.log");
@@ -35,24 +48,22 @@ int main(int argc, char * argv[])
         0);
     gf2d_graphics_set_frame_delay(16);
     gf2d_sprite_init(1024);
+    
     entity_manager_init(1024);
     ui_manager_init_default(50);
-    
+    inventory_init();
+
     map_manager_init(5); //5 is a good number, figure you can swap between 3 main + 2 to each side that can load their own maps
     
+    init_camera(350.0f);
+
     SDL_ShowCursor(SDL_DISABLE);
     
-
-    /*demo setup*/
-    mouse = gf2d_sprite_load_all("images/pointer.png",32,32,16);
-    
-    player_new();
+    Entity* p = player_new();
+    entity_manager_set_player(p);
+    set_camera_target(p);
     Map* test = map_load("test_map.json");
-    Vector2D cam_pos, cam_zoom;
-
-    cam_zoom = vector2d(4,4); 
-
-    //ui_manager_add_text(vector2d(35*4,16), "the FUNNY funny");
+    
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
 
     /*main game loop*/
@@ -65,24 +76,33 @@ int main(int argc, char * argv[])
         mf+=0.1;
         if (mf >= 16.0)mf = 0;
 
+        
+
         gf2d_graphics_clear_screen();// clears drawing buffers
         // all drawing should happen betweem clear_screen and next_frame
             //backgrounds drawn first
             
             //UI elements last
             
-            entity_manager_think_all();
             
-            map_manager_draw_bg(cam_pos, cam_zoom);
+            switch (state)
+            {
+            case PLAY:
+                entity_manager_think_all();
+                map_manager_draw_bg();
+                entity_manager_draw_entities();
+                map_manager_draw_fg();
+                ui_manager_draw();
+                if(keys[SDL_SCANCODE_TAB]) inventory_show_consumables();
+                update_camera();
+                break;
 
-            entity_manager_draw_entities();
-            
-            map_manager_draw_fg(cam_pos, cam_zoom);
+            case MENU:
+                break;
 
-            ui_manager_draw();
-
-            //TODO: add UI manager draw
-            // ALSO cleanup ui manager and map manager properly
+            default:
+                break;
+            }
 
         gf2d_grahics_next_frame();// render current draw frame and skip to the next frame
         
@@ -90,7 +110,6 @@ int main(int argc, char * argv[])
         printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());
     }
 
-    
     slog("---==== END ====---");
     return 0;
 }

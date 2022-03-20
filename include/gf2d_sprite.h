@@ -77,6 +77,8 @@ void gf2d_sprite_draw(
  */
 void gf2d_sprite_free(Sprite *sprite);
 
+Sprite* gf2d_sprite_new();
+
 /**
  * @brief delete all loaded sprites from memory
  * does not close the sprite system
