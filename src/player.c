@@ -89,12 +89,12 @@ void player_think(Entity *self){
     }
 
     if(gfc_input_command_pressed("potion1") && inventory_use_consumable(HEALTH)){
-        self->health += 15;
+        self->health = (self->health + 15 > 100 ? 100 : self->health + 15);
     } else if(gfc_input_command_pressed("potion2") && inventory_use_consumable(SPEED)){
         pd->active_effect = SPEED;
         pd->effect_time = 1000;
     } else if(gfc_input_command_pressed("potion3") && inventory_use_consumable(STAMINA)){
-        pd->stamina += 25;
+        pd->stamina = (pd->stamina + 25 > 100 ? 100 : pd->stamina + 25);
     } else if(gfc_input_command_pressed("potion4") && inventory_use_consumable(INVISIBILITY)){
         self->visible = 0;
         pd->effect_time = 1000;
