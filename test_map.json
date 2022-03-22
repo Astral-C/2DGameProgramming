@@ -20,14 +20,14 @@
             "spawn_amount" : 2,
             "spawn_interval" : 360,
             "max_entities" : 5,
-            "position" : [337, 65]
+            "position" : [300, 65]
         },
         {
             "spawn_type" : 1,
             "spawn_amount" : 1,
             "spawn_interval" : 360,
             "max_entities" : 10,
-            "position" : [200, 65]
+            "position" : [1, 65]
         }
     ],
     "enemies" : [

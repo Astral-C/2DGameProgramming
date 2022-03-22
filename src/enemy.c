@@ -69,6 +69,9 @@ void enemy_spawner_think(Entity* self){
             ((SkullEnemyProps*)ent->data)->spawn_y = self->position.y;
             ent->velocity.x = 3;
             break;
+        
+        default:
+            break;
         }
 
         ent->position = self->position;
@@ -110,6 +113,8 @@ void bat_think(Entity* self){
             bat->state = IDLE;
         }
 
+        break;
+    default:
         break;
     }
     
@@ -201,6 +206,9 @@ void golem_think(Entity* self){
             golem->charge_timer = EnemyConfigs.GolemConfig.charge_timer;
             self->velocity.x = 0;
         }
+
+    default:
+        break;
     }
 
     if(!(ent_collide_world(self) & COL_FLOOR)){
@@ -374,7 +382,7 @@ void magician_think(Entity* self){
             self->flip = vector2d(1, 0);
         }
 
-        if(player_dist_x > magician->throw_range && player_dist_y > magician->throw_range || !player->visible){
+        if((player_dist_x > magician->throw_range && player_dist_y > magician->throw_range) || !player->visible){
             magician->state = WANDER;
         }
         break;
@@ -419,6 +427,7 @@ Entity* enemy_spawner_new(EnemyType type, Uint8 spawn_count, Uint8 spawn_interva
     spawner->_time_next_spawn = spawner->spawn_interval;
 
     ent->think = enemy_spawner_think;
+    return ent;
 }
 
 Entity* bat_new(){

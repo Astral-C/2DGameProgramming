@@ -1,6 +1,6 @@
 {
     "health" : 255,
     "charge_speed" : 4,
-    "charge_timer" : 250,
+    "charge_timer" : 350,
     "range" : 400
 }
