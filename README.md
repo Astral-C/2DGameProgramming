@@ -5,26 +5,29 @@ Currently the game has two maps, one a town and one a regular area, enter the do
 
 To switch through stamina based weapons, hit the x key, to fire the weapon press z with stamina. The whip does not require stamina, it uses the a key.
 Weapons:
-    - Whip
-    - Axe
-    - Shuriken
-    - Knife
-    - Bomb
+
+- Whip
+- Axe
+- Shuriken
+- Knife
+- Bomb
 
 Items can be used by hitting the 1-5 keys, form top to bottom on the left hand menu
-    - Health
-    - Speed
-    - Stamina
-    - Invisibility
-    - Time Stop
+
+- Health
+- Speed
+- Stamina
+- Invisibility
+- Time Stop
 
 
 At least one of each type of enemy exists in the small test area.
-    - Flying Skull
-    - Bat
-    - Golem
-    - Mushroom
-    - Magician
+
+- Flying Skull
+- Bat
+- Golem
+- Mushroom
+- Magician
 
 Spacebar can be used to interact with NPCs, pressing the z key at a shop will let you purchase whatever item is being sold if you have the money.
 
