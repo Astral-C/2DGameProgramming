@@ -77,11 +77,12 @@ void player_think(Entity *self){
     if(!self) return;
     PlayerData* pd = (PlayerData*)self->data;
 
-    Uint8 left_held, right_held, up_held, down_pressed, strafing;
+    Uint8 left_held, right_held, up_held, down_pressed, strafing, stomp;
     left_held = gfc_input_command_held("left");
     right_held = gfc_input_command_held("right");
     up_held = gfc_input_command_held("jump");
     down_pressed = gfc_input_command_released("stomp");
+    stomp = gfc_input_command_pressed("stomp");
     strafing = gfc_input_command_held("strafe");
 
     if (down_pressed){
@@ -196,7 +197,7 @@ void player_think(Entity *self){
                 pd->state = WALK;
             }
         } else {
-            if(self->velocity.y < 6.0f) self->velocity.y += (up_held && self->velocity.y < 0 ? 0.2f : 0.6f) + (10.0f * down_pressed);
+            if(self->velocity.y < 6.0f) self->velocity.y += (up_held && self->velocity.y < 0 ? 0.2f : 0.6f) + (10.0f * stomp);
         }
 
         break;
