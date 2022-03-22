@@ -23,6 +23,11 @@
         "sdl_image.h": "c",
         "simple_logger.h": "c",
         "w_shuriken.h": "c",
-        "hash_map": "c"
+        "hash_map": "c",
+        "map.h": "c",
+        "gfc_list.h": "c",
+        "pg_entity.h": "c",
+        "inventory.h": "c",
+        "enemy.h": "c"
     }
 }

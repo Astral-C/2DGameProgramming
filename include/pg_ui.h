@@ -8,16 +8,24 @@
 typedef enum {
     STRING,
     IMAGE,
-    PROGRESS
+    PROGRESS,
+    HEALTHBAR
 } UIType;
 
 typedef struct {
     TextLine str[2];
     Sprite* img;
-    struct {
-        int max;
-        int* current;
+    union {
+        struct {
+            int imax;
+            int* icurrent;
+        };
+        struct {
+            float fmax;
+            float* fcurrent;
+        };
     };
+    
 } UIValue;
 
 
@@ -29,6 +37,7 @@ typedef struct UIELEMENT_S {
     UIType type;
     Vector2D scale;
     Vector2D position;
+    Vector4D color;
     
     Entity* follow;
     SDL_Rect _transform; //generated from position and scale on render. Slow!
@@ -49,12 +58,15 @@ void ui_manager_init_default(Uint32 max_elements);
 UIElement* ui_manager_add_text(Vector2D location, char* string);
 UIElement* ui_manager_add_image(Vector2D location, char* path, Uint32 w, Uint32 h, Uint32 frames);
 UIElement* ui_manager_add_health(Entity* follow, int max);
+UIElement* ui_manager_add_progressf(Vector2D pos, Vector4D color, float max, float* track);
+UIElement* ui_manager_add_progressi(Vector2D pos, Vector4D color, int max, int* track);
 
 /* Generic render text function usable by anything */
 Sprite* ui_manager_render_text(char* string, SDL_Color color);
 
 void ui_manager_free(UIElement* element);
 void ui_manager_clear();
+void ui_manager_clear_ephemeral();
 void ui_manager_close();
 void ui_manager_draw();
 

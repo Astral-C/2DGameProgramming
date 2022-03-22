@@ -33,6 +33,6 @@ void inventory_unregister_item(char* name, char* description);
 Sprite* inventory_manager_consumables_img();
 
 void inventory_show_consumables();
-
+void inventory_clear();
 
 #endif

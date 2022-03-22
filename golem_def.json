@@ -1,0 +1,6 @@
+{
+    "health" : 255,
+    "charge_speed" : 4,
+    "charge_timer" : 250,
+    "range" : 400
+}

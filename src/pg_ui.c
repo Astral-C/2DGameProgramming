@@ -92,14 +92,21 @@ void draw_ui_element(UIElement* element){
         }
         
     }
-    if(element->type == PROGRESS){
+    if(element->type == HEALTHBAR){
         element->position.x = element->follow->position.x;
         element->position.y = element->follow->position.y + 64;
         vector2d_sub(element->position, element->position, get_camera_pos());
-        Vector2D bar_inner = vector2d((float)*element->value.current / (float)element->value.max, 1.0f);
+        Vector2D bar_inner = vector2d((float)*element->value.icurrent / (float)element->value.imax, 1.0f);
         Vector2D scale_center = vector2d(0,0);
+        gf2d_sprite_draw(ui_manager.progress_bar, element->position, &bar_inner, NULL, NULL, NULL, &element->color, 0);
         gf2d_sprite_draw(ui_manager.progress_border, element->position, NULL, NULL, NULL, NULL, NULL, 0);
-        gf2d_sprite_draw(ui_manager.progress_bar, element->position, &bar_inner, NULL, NULL, NULL, NULL, 0);
+    }
+    if(element->type == PROGRESS){
+        Vector2D bar_scale = vector2d(3,3);
+        Vector2D bar_inner = vector2d(((float)*element->value.fcurrent / (float)element->value.fmax) * 3, 3.0f);
+        Vector2D scale_center = vector2d(0,0);
+        gf2d_sprite_draw(ui_manager.progress_bar, element->position, &bar_inner, NULL, NULL, NULL, &element->color, 0);
+        gf2d_sprite_draw(ui_manager.progress_border, element->position, &bar_scale, NULL, NULL, NULL, NULL, 0);
     }
 }
 
@@ -175,12 +182,48 @@ UIElement* ui_manager_add_health(Entity* follow, int max){
     }
 
     e->follow = follow;
-    e->value.max = max;
-    e->value.current = &follow->health;
-    e->type = PROGRESS;
+    e->value.imax = max;
+    e->value.icurrent = &follow->health;
+    e->type = HEALTHBAR;
+    e->color = vector4d(0x50, 0x80, 0x60, 0xFF);
 
     return e; 
 }
+
+UIElement* ui_manager_add_progressf(Vector2D pos, Vector4D color, float max, float* track){
+    UIElement* e = ui_element_new();
+    if(e == NULL){
+        //log
+        return NULL;
+    }
+
+    e->position = pos;
+    e->follow = NULL;
+    e->value.fmax = max;
+    e->value.fcurrent = track;
+    e->type = PROGRESS;
+    e->color = color;
+
+    return e;  
+}
+
+UIElement* ui_manager_add_progressi(Vector2D pos, Vector4D color, int max, int* track){
+    UIElement* e = ui_element_new();
+    if(e == NULL){
+        //log
+        return NULL;
+    }
+
+    e->position = pos;
+    e->follow = NULL;
+    e->value.imax = max;
+    e->value.icurrent = track;
+    e->type = PROGRESS;
+    e->color = color;
+
+    return e;  
+}
+
 
 void ui_manager_close(){
     ui_manager_clear();
@@ -198,6 +241,14 @@ void ui_manager_clear(){
         if(!ui_manager.ui_elements[i]._inuse) continue;
         ui_manager_free(&ui_manager.ui_elements[i]);
     }
+}
+
+void ui_manager_clear_ephemeral(){
+    int i;
+    for(i=0;i<ui_manager.max_elements;i++){
+        if(!ui_manager.ui_elements[i]._inuse || ui_manager.ui_elements[i].type != HEALTHBAR) continue;
+        ui_manager_free(&ui_manager.ui_elements[i]);
+    } 
 }
 
 void ui_manager_free(UIElement* element){

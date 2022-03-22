@@ -1,0 +1,7 @@
+{
+    "img" : "images/npc.png",
+    "interact" : [148, 208, 16, 16],
+    "pages" : ["Welcome. Buy a Health Potion for $10?"],
+    "is_shop" : 1,
+    "item" : [0, 10]
+}

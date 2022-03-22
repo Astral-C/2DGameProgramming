@@ -9,6 +9,8 @@
 
 #include "camera.h"
 #include "player.h"
+#include "enemy.h"
+#include "npc.h"
 #include "map.h"
 #include "inventory.h"
 
@@ -53,16 +55,19 @@ int main(int argc, char * argv[])
     ui_manager_init_default(50);
     inventory_init();
 
-    map_manager_init(5); //5 is a good number, figure you can swap between 3 main + 2 to each side that can load their own maps
-    
-    init_camera(350.0f);
+    gfc_input_init("input.json");
+
+    load_enemy_configs();
+        
+    init_camera(350.0f, 200.0f);
 
     SDL_ShowCursor(SDL_DISABLE);
     
     Entity* p = player_new();
     entity_manager_set_player(p);
     set_camera_target(p);
-    Map* test = map_load("test_map.json");
+
+    map_load("test_map.json");
     
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
 
@@ -88,13 +93,26 @@ int main(int argc, char * argv[])
             switch (state)
             {
             case PLAY:
+
+                if(gfc_input_key_released("d")){
+                    entity_manager_toggle_draw_debug();
+                }
+
                 entity_manager_think_all();
+
                 map_manager_draw_bg();
                 entity_manager_draw_entities();
                 map_manager_draw_fg();
                 ui_manager_draw();
-                if(keys[SDL_SCANCODE_TAB]) inventory_show_consumables();
+
+                inventory_show_consumables();
+                player_draw_wallet();
+
+                draw_shop_ui();
+
                 update_camera();
+
+                map_manager_update();
                 break;
 
             case MENU:
@@ -104,10 +122,11 @@ int main(int argc, char * argv[])
                 break;
             }
 
+        gfc_input_update();
         gf2d_grahics_next_frame();// render current draw frame and skip to the next frame
         
         if (keys[SDL_SCANCODE_ESCAPE])done = 1; // exit condition
-        printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());
+        //printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());
     }
 
     slog("---==== END ====---");

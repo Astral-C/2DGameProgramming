@@ -1,0 +1,56 @@
+{
+    "commands" : [
+        {
+            "command" : "jump",
+            "keys" : ["UP"]
+        },
+        {
+            "command" : "left",
+            "keys" : ["LEFT"] 
+        },
+        {
+            "command" : "right",
+            "keys" : ["RIGHT"] 
+        },
+        {
+            "command" : "stomp",
+            "keys" : ["DOWN"] 
+        },
+        {
+            "command" : "whip",
+            "keys" : ["a"]
+        },
+        {
+            "command" : "fire_weapon",
+            "keys" : ["z"]
+        },
+        {
+            "command" : "switch_weapon",
+            "keys" : ["x"]
+        },
+        {
+            "command" : "strafe",
+            "keys" : ["LSHIFT"]
+        },
+        {
+            "command" : "potion1",
+            "keys" : ["1"]
+        },
+        {
+            "command" : "potion2",
+            "keys" : ["2"]
+        },
+        {
+            "command" : "potion3",
+            "keys" : ["3"]
+        },
+        {
+            "command" : "potion4",
+            "keys" : ["4"]
+        },
+        {
+            "command" : "potion5",
+            "keys" : ["5"]
+        }
+    ]
+}

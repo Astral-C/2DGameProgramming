@@ -8,12 +8,13 @@ struct Camera {
     Vector2D position;
     Vector2D accel;
     Vector2D zoom;
-    float move_border;
+    float move_border_x;
+    float move_border_y;
     Entity* target;
     SDL_Rect screen_rect;
 };
 
-void init_camera(float move_border);
+void init_camera(float move_border_x, float move_border_y);
 void set_camera_target(Entity* ent);
 void update_camera();
 

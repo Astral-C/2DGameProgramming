@@ -29,12 +29,10 @@ typedef struct {
 } EnemySpawnerProps;
 
 typedef struct {
+    Uint16 move_timer;
     UIElement* healthbar;
     EnemyState state;
-    Uint8 swoop_timer;
     Vector2D home;
-    Uint8 range;
-    Uint16 move_timer;
 } BatEnemyProps;
 
 typedef struct {
@@ -49,7 +47,6 @@ typedef struct {
     UIElement* healthbar;
     EnemyState state;
     Uint8 amplitude;
-    Uint8 period;
     float start;
     float spawn_y;
     Uint16 lifetime;
@@ -83,5 +80,7 @@ Entity* mushroom_new();
 Entity* magician_new();
 
 Entity* throwable_atk_new(Entity* thrower, char* sprite_path);
+
+void load_enemy_configs();
 
 #endif

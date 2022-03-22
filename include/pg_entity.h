@@ -7,6 +7,7 @@
 typedef struct ENT_S {
     Uint8 _inuse;          /**<is entity in use */ 
     
+    Uint8 visible;
     Sprite* sprite;        /**<sprite used to draw this entity */
     float frame;           /**<current anim frame */
     
@@ -30,7 +31,7 @@ typedef struct ENT_S {
     };
 
     void (*think)(struct ENT_S* self);
-    void (*die)(struct ENT_S* self);
+    void (*cleanup)(struct ENT_S* self);
 
 } Entity;
 
@@ -85,6 +86,7 @@ void damage_radius(Entity* ignore, Vector2D p, Uint8 damage, float range);
  * 
 */
 Entity* get_colliding(Entity* ent);
+Entity* get_colliding_r(Rect r, Entity* filter);
 
 /**
  * @brief sets the entity manager's fast access player field to point at this entity
@@ -97,4 +99,12 @@ void entity_manager_set_player(Entity* e);
  * 
 */
 Entity* entity_manager_get_player();
+
+
+void entity_manager_time_freeze();
+
+void entity_manager_time_unfreeze();
+
+void entity_manager_toggle_draw_debug();
+
 #endif

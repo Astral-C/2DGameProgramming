@@ -14,9 +14,9 @@ static InventoryManager inventory = {0};
 void inventory_init(){
     inventory.consumable_icons = gf2d_sprite_load_all("images/potions.png", 128, 128, 5);
     inventory.items = gfc_list_new();
-    inventory.consumables[0] = 5;
     
     for (size_t i = 0; i < CONSUMABLE_COUNT; i++){
+        inventory.consumables[i] = 3;
         char num[3];
         snprintf(num, 3, "%d", inventory.consumables[i]);
         inventory.consumable_counts[i] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
@@ -59,6 +59,18 @@ Uint8 inventory_use_consumable(ConsumableType type){
     snprintf(num, 3, "%d", inventory.consumables[type]);
     inventory.consumable_counts[type] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
     return 1;
+}
+
+void inventory_clear(){
+    for (size_t i = 0; i < CONSUMABLE_COUNT; i++){
+        inventory.consumables[i] = 0;
+
+        gf2d_sprite_free(inventory.consumable_counts[i]);
+
+        char num[3];
+        snprintf(num, 3, "%d", inventory.consumables[i]);
+        inventory.consumable_counts[i] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
+    }
 }
 
 void inventory_show_consumables(){

@@ -11,8 +11,13 @@ typedef enum {
     CIRCLE
 } ColType;
 
-typedef struct MAP_S {
-    Uint8 _ref_count; //what the fuck was I doing here?
+typedef struct  {
+    TextLine load_map;
+    Rect area;
+    int dest_warp;
+} Warp;
+
+typedef struct {
     Uint8 is_town;
     Sprite* background;
     Sprite* decoration;
@@ -20,19 +25,19 @@ typedef struct MAP_S {
  
     Uint32 rect_count;
     Rect* collision;
+
+    Uint32 warp_count;
+    Warp* warps;
     
     TextLine name; //TODO: replace this with a hash?
-
-
+    int map_width;
+    int map_height;
+    Vector2D player_spawn;
 } Map;
 
 //TODO: Write free func
 
-void map_manager_init(Uint8 map_count);
-Map* map_new(char* name);
-
-void set_map_active();
-Map* get_map_active();
+void map_load(char* name);
 
 Uint8 collide_worldp(Vector2D p);
 Uint8 ent_collide_world(Entity* ent);
@@ -42,5 +47,11 @@ void map_draw_bg(Map* m);
 
 void map_manager_draw_fg();
 void map_manager_draw_bg();
+
+int current_map_width();
+
+void try_warp(Rect r);
+void map_manager_update();
+Vector2D map_get_player_spawn();
 
 #endif

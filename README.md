@@ -1,14 +1,35 @@
-# gameframework2d (GF2D)
-a collection of utlitity functions designed to facilitate creating 2D games with SDL2
-This project is specifically intended to function as an educational tool for my students taking 2D Game Programming.
+# Unnamed 2D Platformer
 
-Currently the project is in a WIP state, however it is functional with sample projects showcasing rudimentary scrolling shooters,
-platformers, and adventure games.
+## How to see all the games features
+Currently the game has two maps, one a town and one a regular area, enter the door on the left (down while over door) to move between the maps
 
-The master branch is kept deliberately minimal to allow students to build out systems as they are learning.
-Other branches have more complete system: Collisions, menus, input abstraction.
+To switch through stamina based weapons, hit the x key, to fire the weapon press z with stamina. The whip does not require stamina, it uses the a key.
+Weapons:
+    - Whip
+    - Axe
+    - Shuriken
+    - Knife
+    - Bomb
 
-# Build Process
+Items can be used by hitting the 1-5 keys, form top to bottom on the left hand menu
+    - Health
+    - Speed
+    - Stamina
+    - Invisibility
+    - Time Stop
+
+
+At least one of each type of enemy exists in the small test area.
+    - Flying Skull
+    - Bat
+    - Golem
+    - Mushroom
+    - Magician
+
+Spacebar can be used to interact with NPCs, pressing the z key at a shop will let you purchase whatever item is being sold if you have the money.
+
+## Original Readme's Build Process
+### Build Process
 
 Before you can build the example code we are providing for you, you will need to obtain the libraries required
 by the source code

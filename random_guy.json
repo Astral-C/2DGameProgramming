@@ -1,0 +1,6 @@
+{
+    "img" : "images/elf.png",
+    "interact" : [212, 208, 16, 16],
+    "pages" : ["Hi, I am a generic NPC.", "Isn't that just neat?", "Well ok, bye."],
+    "is_shop" : 0
+}
