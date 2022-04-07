@@ -28,6 +28,11 @@
         "gfc_list.h": "c",
         "pg_entity.h": "c",
         "inventory.h": "c",
-        "enemy.h": "c"
+        "enemy.h": "c",
+        "menu.h": "c",
+        "gf2d_sprite.h": "c",
+        "sdl.h": "c",
+        "gfc_vector.h": "c",
+        "gfc_hashmap.h": "c"
     }
 }

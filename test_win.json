@@ -1,0 +1,13 @@
+{
+    "size" : [1200, 720],
+    "position" : [0, 0],
+    "elements" : [
+        {
+            "name" : "start_button",
+            "type" : 1,
+            "label" : "Start",
+            "position" : [450, 400],
+            "size" : [100, 300]
+        }
+    ]
+}

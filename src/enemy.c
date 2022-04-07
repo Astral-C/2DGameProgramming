@@ -69,6 +69,9 @@ void enemy_spawner_think(Entity* self){
             ((SkullEnemyProps*)ent->data)->spawn_y = self->position.y;
             ent->velocity.x = 3;
             break;
+
+        default:
+            break;
         }
 
         ent->position = self->position;
@@ -111,13 +114,16 @@ void bat_think(Entity* self){
         }
 
         break;
+    
+    default:
+        break;
     }
     
-        if(rect_collider(self->hurtbox, player->hurtbox)){
-            player->velocity.y -= 0.5;
-            player->velocity.x = self->velocity.x * 2.5;
-            player->health -= 1;
-        }
+    if(rect_collider(self->hurtbox, player->hurtbox)){
+        player->velocity.y -= 0.5;
+        player->velocity.x = self->velocity.x * 2.5;
+        player->health -= 1;
+    }
 
 
     if(bat->move_timer == 0) bat->move_timer = EnemyConfigs.BatConfig.move_timer; //600
@@ -201,6 +207,9 @@ void golem_think(Entity* self){
             golem->charge_timer = EnemyConfigs.GolemConfig.charge_timer;
             self->velocity.x = 0;
         }
+    
+    default:
+        break;
     }
 
     if(!(ent_collide_world(self) & COL_FLOOR)){
@@ -219,6 +228,7 @@ void golem_think(Entity* self){
         ui_manager_free(golem->healthbar);
         entity_free(self);
     }
+
 }
 
 void skull_think(Entity* self){
@@ -351,7 +361,7 @@ void magician_think(Entity* self){
             magician->state = IDLE;
         }
 
-        if(player_dist_x < magician->throw_range && player_dist_y < magician->throw_range && player->visible){
+        if((player_dist_x < magician->throw_range) && (player_dist_y < magician->throw_range) && player->visible){
             magician->state = ATTACK;
             self->frame = 3;
             self->velocity.x = 0;
@@ -374,9 +384,12 @@ void magician_think(Entity* self){
             self->flip = vector2d(1, 0);
         }
 
-        if(player_dist_x > magician->throw_range && player_dist_y > magician->throw_range || !player->visible){
+        if((player_dist_x > magician->throw_range && player_dist_y > magician->throw_range) || !player->visible){
             magician->state = WANDER;
         }
+        break;
+
+    default:
         break;
     }
 
@@ -419,6 +432,8 @@ Entity* enemy_spawner_new(EnemyType type, Uint8 spawn_count, Uint8 spawn_interva
     spawner->_time_next_spawn = spawner->spawn_interval;
 
     ent->think = enemy_spawner_think;
+
+    return ent;
 }
 
 Entity* bat_new(){
@@ -434,7 +449,7 @@ Entity* bat_new(){
     ent->scale = vector2d(4,4);
     ent->velocity = vector2d(gfc_crandom(), gfc_crandom()); // choose a random direction to move in to find a home
     bat->move_timer = EnemyConfigs.BatConfig.move_timer;
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 16*4, 16*4};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {16*4, 16*4}};
     
     return ent;
 }
@@ -454,7 +469,7 @@ Entity* golem_new(){
     ent->scale = vector2d(1,1);
     ent->draw_offset = vector2d(-28, -64);
     ent->think = golem_think;
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 64, 64};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
     ent->frame = 0;
     
     return ent;
@@ -476,7 +491,7 @@ Entity* skull_new(){
     ent->draw_offset = vector2d(0, 0);
     ent->think = skull_think;
     ent->flip = vector2d(-1,0);
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 64, 64};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
     ent->frame = 0;
     
     return ent; 
@@ -495,7 +510,7 @@ Entity* mushroom_new(){
     ent->scale = vector2d(1,1);
     ent->draw_offset = vector2d(0, 0);
     ent->think = mushroom_think;
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 32, 32};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {32, 32}};
     ent->frame = 0;
     
     return ent; 
@@ -512,7 +527,7 @@ Entity* throwable_atk_new(Entity* ent, char* sprite_path){
 
     atk->owner = ent;
 
-    atk->hurtbox = (Rect){ent->position.x, ent->position.y, 32, 32};
+    atk->hurtbox = (Rect){{ent->position.x, ent->position.y}, {32, 32}};
     atk->frame = 0;
 
     return atk;
@@ -535,7 +550,7 @@ Entity* magician_new(){
     ent->scale = vector2d(1,1);
     ent->draw_offset = vector2d(0, 0);
     ent->think = magician_think;
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 64, 64};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
     ent->frame = 0;
     
     return ent; 

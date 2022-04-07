@@ -29,17 +29,17 @@ void map_load(char* map_def){
     
     if(!jsn){
         slog("Unable to open map def %s");
-        return NULL;
+        return;
     }
 
     /* Note: I may change this later to build the map from a tiled json export, we'll see */
 
-    const char* map_name = sj_get_string_value(sj_object_get_value(jsn, "name"));
-    const char* map_fg = sj_get_string_value(sj_object_get_value(jsn, "map_fg"));
-    const char* map_deco = sj_get_string_value(sj_object_get_value(jsn, "map_deco"));
-    const char* map_bg = sj_get_string_value(sj_object_get_value(jsn, "map_bg"));
+    char* map_name = (char*)sj_get_string_value(sj_object_get_value(jsn, "name"));
+    char* map_fg = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_fg"));
+    char* map_deco = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_deco"));
+    char* map_bg = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_bg"));
     short is_town = 0;
-    sj_get_bool_value(sj_object_get_value(jsn, "is_town"), is_town);
+    sj_get_bool_value(sj_object_get_value(jsn, "is_town"), &is_town);
     SJson* collision = sj_object_get_value(jsn, "collision");
     SJson* spawners = sj_object_get_value(jsn, "spawners");
     SJson* enemies = sj_object_get_value(jsn, "enemies");
@@ -59,7 +59,7 @@ void map_load(char* map_def){
     if(!map_name){
         slog("Couldn't load map name from def %s", map_def);
         sj_free(jsn);
-        return NULL;
+        return;
     }
 
     int collision_rect_count = sj_array_get_count(collision);
@@ -152,7 +152,7 @@ void map_load(char* map_def){
     for (int cr = 0; cr < warp_count; cr++){
         SJson* warp = sj_array_get_nth(warps, cr);
         
-        char* warp_path = sj_get_string_value(sj_object_get_value(warp, "map"));
+        char* warp_path = (char*)sj_get_string_value(sj_object_get_value(warp, "map"));
         strncpy(map_manager.current_map.warps[cr].load_map, warp_path, sizeof(TextLine));
 
         SJson* dest = sj_object_get_value(warp, "dest_warp");
@@ -181,8 +181,9 @@ void map_load(char* map_def){
     
     for (int cr = 0; cr < npc_count; cr++){
         SJson* npc = sj_array_get_nth(npcs, cr);
-        char* path = sj_get_string_value(npc);
-        Entity* ent = npc_new(path);
+        char* path = (char*)sj_get_string_value(npc);
+        //return Entity*
+        npc_new(path);
     }
 
 

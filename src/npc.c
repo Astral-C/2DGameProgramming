@@ -37,7 +37,7 @@ void npc_think(Entity* self){
         interaction_manager.current_page = 0;
         
         gf2d_sprite_free(props->textbox_text);
-        char* page_text = sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
+        char* page_text = (char*)sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
         props->textbox_text = ui_manager_render_text(page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
         return;
 
@@ -53,8 +53,8 @@ void npc_think(Entity* self){
             }
             interaction_manager.current_page++;
             gf2d_sprite_free(props->textbox_text);
-            char* page_text = sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page));
-            props->textbox_text = ui_manager_render_text(page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
+            const char* page_text = sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page));
+            props->textbox_text = ui_manager_render_text((char*)page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
 
         }
     } else {
@@ -80,6 +80,9 @@ void npc_cleanup(Entity* self){
 }
 
 Entity* npc_new(char* path){
+
+    int is_shop;
+
     Entity* npc = entity_new();
     NpcProps* props = (NpcProps*)npc->data;
 
@@ -107,12 +110,14 @@ Entity* npc_new(char* path){
     npc->position.x = x << 2;
     npc->position.y = y << 2;
     
-    char* img_path = sj_get_string_value(sj_object_get_value(npc_def, "img"));
+    char* img_path = (char*)sj_get_string_value(sj_object_get_value(npc_def, "img"));
 
     npc->sprite = gf2d_sprite_load_image(img_path);
     npc->scale = vector2d(1,1);
 
-    sj_get_integer_value(sj_object_get_value(npc_def, "is_shop"), &props->is_shop);
+
+    sj_get_integer_value(sj_object_get_value(npc_def, "is_shop"), &is_shop);
+    props->is_shop = is_shop;
 
     props->textbox_pages = sj_array_get_count(sj_object_get_value(npc_def, "pages"));
 
@@ -130,6 +135,7 @@ Entity* npc_new(char* path){
 
 Uint8 npc_request_interaction(){
     interaction_manager.requested_interaction = 1;
+    return 1; //? what? why is this non void?
 }
 
 Uint8 npc_is_interacting(){

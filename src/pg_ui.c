@@ -97,14 +97,12 @@ void draw_ui_element(UIElement* element){
         element->position.y = element->follow->position.y + 64;
         vector2d_sub(element->position, element->position, get_camera_pos());
         Vector2D bar_inner = vector2d((float)*element->value.icurrent / (float)element->value.imax, 1.0f);
-        Vector2D scale_center = vector2d(0,0);
         gf2d_sprite_draw(ui_manager.progress_bar, element->position, &bar_inner, NULL, NULL, NULL, &element->color, 0);
         gf2d_sprite_draw(ui_manager.progress_border, element->position, NULL, NULL, NULL, NULL, NULL, 0);
     }
     if(element->type == PROGRESS){
         Vector2D bar_scale = vector2d(3,3);
         Vector2D bar_inner = vector2d(((float)*element->value.fcurrent / (float)element->value.fmax) * 3, 3.0f);
-        Vector2D scale_center = vector2d(0,0);
         gf2d_sprite_draw(ui_manager.progress_bar, element->position, &bar_inner, NULL, NULL, NULL, &element->color, 0);
         gf2d_sprite_draw(ui_manager.progress_border, element->position, &bar_scale, NULL, NULL, NULL, NULL, 0);
     }

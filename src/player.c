@@ -34,11 +34,6 @@ typedef struct {
 } PlayerWallet;
 
 typedef struct {
-    UIElement* healthbar; // 27
-    UIElement* staminabar; // 31
-} PlayerUI;
-
-typedef struct {
     Uint8 on_floor; // 1
     Uint16 effect_time; // 3
     ConsumableType active_effect; // 7
@@ -48,8 +43,6 @@ typedef struct {
     float stamina; // 19
     Weapon active_weapon; // 23
 } PlayerData;
-
-static PlayerUI ui = {0};
 
 static PlayerWallet wallet = {.money = 10, .money_dirty = 1, .money_sprite = NULL};
 
@@ -317,7 +310,7 @@ Entity* player_new(){
     pd->active_weapon = KNIFE;
     pd->direction = 1;
     pd->stamina = 100;
-    plyr->hurtbox = (Rect){plyr->position.x, plyr->position.y, 16*4, 16*4};
+    plyr->hurtbox = (Rect){{plyr->position.x, plyr->position.y}, {64, 64}};
 
     pd->on_floor = 0;
 

@@ -38,7 +38,7 @@ Entity* knife_ent_new(){
     ent->draw_offset.x = -4;
     ent->draw_offset.y = -4;
     ent->scale = vector2d(4,4);
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 8*4, 8*2};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {32, 16}};
 
     return ent;
 }

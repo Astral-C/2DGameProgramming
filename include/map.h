@@ -49,6 +49,7 @@ void map_manager_draw_fg();
 void map_manager_draw_bg();
 
 int current_map_width();
+int current_map_height();
 
 void try_warp(Rect r);
 void map_manager_update();

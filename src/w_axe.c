@@ -46,8 +46,8 @@ Entity* axe_ent_new(){
 
     ent->scale = vector2d(4,4);
 
-    k->time_remaining = 60*6;
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 16*4, 16*4};
+    k->time_remaining = 360;
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
 
     return ent;
 }

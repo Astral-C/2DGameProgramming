@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <time.h>
 #include "gf2d_graphics.h"
 #include "gf2d_sprite.h"
 #include "gfc_input.h"
@@ -14,6 +15,7 @@
 #include "map.h"
 #include "inventory.h"
 
+
 typedef enum {
     PLAY,
     MENU,
@@ -25,15 +27,11 @@ int main(int argc, char * argv[])
     /*variable declarations*/
     int done = 0;
     const Uint8 * keys;
-    Sprite *sprite;
-    Entity* ent;
 
-    gamestate state = PLAY;
 
-    int mx,my;
+    gamestate state = PLAY;//MENU; //PLAY;
+
     float mf = 0;
-    Sprite *mouse;
-    Vector4D mouseColor = {255,100,255,200};
     
     srand(time(0));
     
@@ -71,23 +69,26 @@ int main(int argc, char * argv[])
     
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
 
+    /*
+    Menu Manager Code
+    */
+
+
     /*main game loop*/
     while(!done)
     {
+        //int start = SDL_GetTicks();
         SDL_PumpEvents();   // update SDL's internal event structures
         keys = SDL_GetKeyboardState(NULL); // get the keyboard state for this frame
         /*update things here*/
-        SDL_GetMouseState(&mx,&my);
+        //SDL_GetMouseState(&mx,&my);
         mf+=0.1;
         if (mf >= 16.0)mf = 0;
 
         
-
         gf2d_graphics_clear_screen();// clears drawing buffers
         // all drawing should happen betweem clear_screen and next_frame
             //backgrounds drawn first
-            
-            //UI elements last
             
             
             switch (state)
@@ -122,8 +123,10 @@ int main(int argc, char * argv[])
                 break;
             }
 
+
         gfc_input_update();
         gf2d_grahics_next_frame();// render current draw frame and skip to the next frame
+        //slog("Ticks this frame %i", SDL_GetTicks() - start);
         
         if (keys[SDL_SCANCODE_ESCAPE])done = 1; // exit condition
         //printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());

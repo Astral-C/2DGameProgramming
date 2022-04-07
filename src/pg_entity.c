@@ -86,7 +86,7 @@ void entity_manager_draw_entities(){
 void entity_manager_think_all(){
     int i;
     for(i=0;i<entity_manager.max_entities;i++){
-        if(entity_manager.entity_list[i]._inuse && !entity_manager.frozen || &entity_manager.entity_list[i] == entity_manager.player){
+        if((entity_manager.entity_list[i]._inuse && !entity_manager.frozen) || &entity_manager.entity_list[i] == entity_manager.player){
             entity_manager.entity_list[i].think(&entity_manager.entity_list[i]);
             vector2d_add(entity_manager.entity_list[i].position, entity_manager.entity_list[i].velocity, entity_manager.entity_list[i].position);
             vector2d_copy(entity_manager.entity_list[i].hurtbox.pos, entity_manager.entity_list[i].position);

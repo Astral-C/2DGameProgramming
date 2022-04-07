@@ -52,7 +52,7 @@ Entity* shuriken_ent_new(){
     ent->scale = vector2d(4,4);
 
     k->time_remaining = 60*2;
-    ent->hurtbox = (Rect){ent->position.x, ent->position.y, 8*4, 8*4};
+    ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {8*4, 8*4}};
 
     return ent;
 }
