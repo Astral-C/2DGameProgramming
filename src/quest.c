@@ -1,4 +1,4 @@
-#include <quest.h>
+#include "quest.h"
 
 static QuestManager quests = {0};
 
@@ -36,8 +36,11 @@ void quest_manager_notify(EventType type, int tag){
             break;
         
         case ET_KillEnemy:
+            slog("Updating Quests...");
             if(tag == quests.active_quest->tag){
-                if(quests.active_quest->progress++ >= quests.active_quest->completion_progress){
+                quests.active_quest->progress++;
+                slog("Killed enemy with correct tag, progress is %d", quests.active_quest->progress);
+                if(quests.active_quest->progress >= quests.active_quest->completion_progress){
                     quests.active_quest->is_complete = 1;
                 }
             }   
