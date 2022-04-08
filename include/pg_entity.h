@@ -107,4 +107,6 @@ void entity_manager_time_unfreeze();
 
 void entity_manager_toggle_draw_debug();
 
+void entity_manager_set_draw_debug(Uint8 draw);
+
 #endif

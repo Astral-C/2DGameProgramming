@@ -14,7 +14,8 @@
 #include "npc.h"
 #include "map.h"
 #include "inventory.h"
-
+#include "quest.h"
+#include "menu.h"
 
 typedef enum {
     PLAY,
@@ -59,20 +60,20 @@ int main(int argc, char * argv[])
         
     init_camera(350.0f, 200.0f);
 
-    SDL_ShowCursor(SDL_DISABLE);
+    //SDL_ShowCursor(SDL_DISABLE);
     
     Entity* p = player_new();
     entity_manager_set_player(p);
     set_camera_target(p);
 
     map_load("test_map.json");
-    
+
+    quest_manager_init();
+    add_quest("kill_5_bats", ET_KillEnemy, ENEMY_BAT, 5);
+    activate_quest("kill_5_bats");
+
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
-
-    /*
-    Menu Manager Code
-    */
-
+    init_menu();
 
     /*main game loop*/
     while(!done)
@@ -95,25 +96,26 @@ int main(int argc, char * argv[])
             {
             case PLAY:
 
-                if(gfc_input_key_released("d")){
-                    entity_manager_toggle_draw_debug();
-                }
+                if(!game_paused()){
 
-                entity_manager_think_all();
+                    entity_manager_think_all();
+                }
 
                 map_manager_draw_bg();
                 entity_manager_draw_entities();
                 map_manager_draw_fg();
                 ui_manager_draw();
-
+    
                 inventory_show_consumables();
                 player_draw_wallet();
 
                 draw_shop_ui();
-
                 update_camera();
 
                 map_manager_update();
+                
+                menu_draw();
+
                 break;
 
             case MENU:
@@ -125,6 +127,8 @@ int main(int argc, char * argv[])
 
 
         gfc_input_update();
+        menu_update();
+        
         gf2d_grahics_next_frame();// render current draw frame and skip to the next frame
         //slog("Ticks this frame %i", SDL_GetTicks() - start);
         

@@ -51,6 +51,10 @@
         {
             "command" : "potion5",
             "keys" : ["5"]
+        },
+        {
+            "command" : "toggle_console",
+            "keys" : ["F1"]
         }
     ]
 }

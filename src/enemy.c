@@ -4,6 +4,7 @@
 #include "map.h"
 #include "item.h"
 #include "player.h"
+#include "quest.h"
 
 static struct {
     struct {
@@ -142,6 +143,8 @@ void bat_think(Entity* self){
             vector2d_copy(potion->position, self->position);
         }
 
+        quest_manager_notify(ET_KillEnemy, ENEMY_BAT);
+
         ui_manager_free(bat->healthbar);
         entity_free(self);
     }
@@ -225,6 +228,9 @@ void golem_think(Entity* self){
         if(r < 0.9){
             player_add_money(100);
         }
+
+        quest_manager_notify(ET_KillEnemy, ENEMY_GOLEM);
+
         ui_manager_free(golem->healthbar);
         entity_free(self);
     }

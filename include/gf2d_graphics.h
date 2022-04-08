@@ -45,6 +45,12 @@ float gf2d_graphics_get_frames_per_second();
 SDL_Renderer *gf2d_graphics_get_renderer();
 
 /**
+ * @brief get the current window
+ * @return NULL on error or the window
+ */
+SDL_Window *gf2d_graphics_get_window();
+
+/**
  * @brief render the current frame to screen
  */
 void gf2d_grahics_next_frame();

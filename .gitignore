@@ -58,3 +58,5 @@ gf2d
 *.log
 
 makefile.dep
+.vscode
+.vscode/*
