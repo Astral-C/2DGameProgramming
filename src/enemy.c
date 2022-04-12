@@ -456,6 +456,7 @@ Entity* bat_new(){
     ent->velocity = vector2d(gfc_crandom(), gfc_crandom()); // choose a random direction to move in to find a home
     bat->move_timer = EnemyConfigs.BatConfig.move_timer;
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {16*4, 16*4}};
+    ent->type = ENT_ENEMY;
     
     return ent;
 }
@@ -477,7 +478,8 @@ Entity* golem_new(){
     ent->think = golem_think;
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
     ent->frame = 0;
-    
+    ent->type = ENT_ENEMY;
+
     return ent;
 }
 
@@ -499,6 +501,7 @@ Entity* skull_new(){
     ent->flip = vector2d(-1,0);
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
     ent->frame = 0;
+    ent->type = ENT_ENEMY;
     
     return ent; 
 }
@@ -518,7 +521,8 @@ Entity* mushroom_new(){
     ent->think = mushroom_think;
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {32, 32}};
     ent->frame = 0;
-    
+    ent->type = ENT_ENEMY;
+
     return ent; 
 }
 
@@ -558,6 +562,7 @@ Entity* magician_new(){
     ent->think = magician_think;
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {64, 64}};
     ent->frame = 0;
+    ent->type = ENT_ENEMY;
     
     return ent; 
 }

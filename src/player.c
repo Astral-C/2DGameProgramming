@@ -299,7 +299,7 @@ Entity* player_new(){
     ui_manager_add_progressi(vector2d(105, 20), vector4d(0x50, 0x80, 0x60, 0xFF), 100, &plyr->health);
     ui_manager_add_progressf(vector2d(105, 55), vector4d(0x30, 0x80, 0xc0, 0xFF), 100, &pd->stamina);
 
-    //0x30 80 c0
+    plyr->type = ENT_PLAYER;
 
     plyr->sprite = gf2d_sprite_load_all("images/plyr_sheet.png",16, 16, 18);
     plyr->think = player_think;

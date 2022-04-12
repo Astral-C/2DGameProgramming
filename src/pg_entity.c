@@ -94,6 +94,22 @@ void entity_manager_think_all(){
     }
 }
 
+void entity_manager_think_edit(){
+    int i, x, y;
+    Uint32 state;
+    Vector2D mouse_pos;
+    state = SDL_GetMouseState(&x, &y);
+    mouse_pos = vector2d(x, y);
+    vector2d_add(mouse_pos, get_camera_pos(), mouse_pos);
+    for(i=0;i<entity_manager.max_entities;i++){
+        if(entity_manager.entity_list[i]._inuse){
+            if(state & SDL_BUTTON_LMASK != 0 && rect_collidep(mouse_pos, entity_manager.entity_list[i].hurtbox)){
+                entity_manager.player = &entity_manager.entity_list[i];
+            }
+        }
+    }
+}
+
 void entity_manager_close(){
     entity_manager_clear(NULL);
 
@@ -111,8 +127,14 @@ void entity_manager_clear(Entity* filter){
     }
 }
 
-void entity_manager_set_player(Entity* e){
-    entity_manager.player = e;
+void entity_manager_reset_player(){
+    int i;
+    for(i=0;i<entity_manager.max_entities;i++){
+        if(entity_manager.entity_list[i]._inuse && entity_manager.entity_list[i].type == ENT_PLAYER){
+            entity_manager.player = &entity_manager.entity_list[i];
+            return;
+        }
+    }
 }
 
 Entity* entity_manager_get_player(){
@@ -182,4 +204,13 @@ void entity_manager_toggle_draw_debug(){
 
 void entity_manager_set_draw_debug(Uint8 draw){
     entity_manager.draw_debug = draw;
+}
+
+void entity_manager_kill_enemies(){
+    int i;
+    for(i=0;i<entity_manager.max_entities;i++){
+        if(entity_manager.entity_list[i]._inuse && entity_manager.entity_list[i].type == ENT_ENEMY){ //add collision masks at some point? idfk at this point
+            entity_manager.entity_list[i].health = 0;
+        }
+    }
 }

@@ -20,7 +20,7 @@
 typedef enum {
     PLAY,
     MENU,
-    TEXTBOX //?
+    EDIT
 } gamestate;
 
 int main(int argc, char * argv[])
@@ -30,7 +30,7 @@ int main(int argc, char * argv[])
     const Uint8 * keys;
 
 
-    gamestate state = PLAY;//MENU; //PLAY;
+    gamestate state = PLAY;
 
     float mf = 0;
     
@@ -63,7 +63,7 @@ int main(int argc, char * argv[])
     //SDL_ShowCursor(SDL_DISABLE);
     
     Entity* p = player_new();
-    entity_manager_set_player(p);
+    entity_manager_reset_player();
     set_camera_target(p);
 
     map_load("test_map.json");
@@ -119,7 +119,22 @@ int main(int argc, char * argv[])
                 break;
 
             case MENU:
+                menu_draw();
                 break;
+
+            case EDIT:
+
+                entity_manager_think_edit();                
+
+                map_manager_draw_bg();
+                entity_manager_draw_entities();
+                map_manager_draw_fg();
+    
+                update_camera();
+
+                map_manager_update();
+                
+                menu_draw();
 
             default:
                 break;
@@ -127,7 +142,7 @@ int main(int argc, char * argv[])
 
 
         gfc_input_update();
-        menu_update();
+        menu_update(&state); // Always updates
         
         gf2d_grahics_next_frame();// render current draw frame and skip to the next frame
         //slog("Ticks this frame %i", SDL_GetTicks() - start);

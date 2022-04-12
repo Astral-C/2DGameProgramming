@@ -19,6 +19,7 @@ void add_quest(char* name, EventType type, int tag, Uint8 completion_progress){
     q->completion_progress = completion_progress;
     q->is_complete = 0;
     q->progress = 0;
+    gfc_line_cpy(q->name, name);
 
     gfc_hashmap_insert(quests.available_quests, name, q);
 }
@@ -59,4 +60,9 @@ Uint8 quest_manager_check_completion(char* quest_name){
     }
 
     return q->is_complete;
+}
+
+
+QuestManager* get_quest_manager(){
+    return &quests;
 }

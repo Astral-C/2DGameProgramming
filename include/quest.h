@@ -14,6 +14,7 @@ typedef struct {
     Uint8 progress;
     Uint8 completion_progress;
     Uint8 is_complete;
+    TextLine name;
     int tag;
     EventType type;
 } Quest;
@@ -29,5 +30,7 @@ void activate_quest(char* quest_name);
 void quest_manager_notify(EventType type, int tag);
 Uint8 quest_manager_check_completion(char* quest_name);
 void add_quest(char* name, EventType type, int tag, Uint8 completion_progress);
+
+QuestManager* get_quest_manager();
 
 #endif

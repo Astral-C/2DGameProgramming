@@ -1,6 +1,10 @@
 #ifndef __MENU_SYS_H__
 #define __MENU__SYS_H__
 #include <SDL.h>
+#include "pg_entity.h"
+#include "map.h"
+#include "npc.h"
+#include "quest.h"
 
 /*
  *      Menu System, uses Nuklear as a base

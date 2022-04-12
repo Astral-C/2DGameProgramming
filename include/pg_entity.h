@@ -4,10 +4,19 @@
 #include "rect.h"
 #include "gf2d_sprite.h"
 
+typedef enum {
+    ENT_GENERAL,
+    ENT_PLAYER,
+    ENT_ENEMY,
+    ENT_WEAPON,
+    ENT_NPC,
+} EntityType;
+
 typedef struct ENT_S {
     Uint8 _inuse;          /**<is entity in use */ 
     
     Uint8 visible;
+    EntityType type;
     Sprite* sprite;        /**<sprite used to draw this entity */
     float frame;           /**<current anim frame */
     
@@ -89,10 +98,10 @@ Entity* get_colliding(Entity* ent);
 Entity* get_colliding_r(Rect r, Entity* filter);
 
 /**
- * @brief sets the entity manager's fast access player field to point at this entity
+ * @brief resets the entity manager's fast access player field to the first ENT_PLAYER type entity (there is only ever one)
  * 
 */
-void entity_manager_set_player(Entity* e);
+void entity_manager_reset_player();
 
 /**
  * @brief returns the entity in this entity manager marked as the player
@@ -101,6 +110,8 @@ void entity_manager_set_player(Entity* e);
 Entity* entity_manager_get_player();
 
 
+void entity_manager_think_edit();
+
 void entity_manager_time_freeze();
 
 void entity_manager_time_unfreeze();
@@ -108,5 +119,7 @@ void entity_manager_time_unfreeze();
 void entity_manager_toggle_draw_debug();
 
 void entity_manager_set_draw_debug(Uint8 draw);
+
+void entity_manager_kill_enemies();
 
 #endif
