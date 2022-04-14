@@ -6,6 +6,8 @@
 #include "inventory.h"
 #include "player.h"
 #include "camera.h"
+#include "quest.h"
+
 
 typedef struct {
     Entity* interacting;
@@ -21,14 +23,19 @@ typedef struct {
     Uint32 sell_type; // 16
     Uint32 sell_price; // 20
     Uint8 is_shop; // 1
-    Uint8 scale;
+    Uint8 has_quest;
 } NpcProps;
 
 static InteractionManager interaction_manager = {0};
 
 void npc_think(Entity* self){
+    SJson* quest;
     Entity* p = entity_manager_get_player();
     NpcProps* props = (NpcProps*)self->data;
+
+    if(props->has_quest){
+        quest = sj_object_get_value(props->npc_json, "quest");
+    }
 
     if(!interaction_manager.interacting && interaction_manager.requested_interaction && rect_collider(self->hurtbox, p->hurtbox)){
         slog("interacting beginning");
@@ -37,16 +44,21 @@ void npc_think(Entity* self){
         interaction_manager.current_page = 0;
         
         gf2d_sprite_free(props->textbox_text);
-        char* page_text = (char*)sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
+
+        char* page_text = "";
+        if(!props->has_quest){
+            page_text = (char*)sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
+        } else {
+            page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "incomplete_text"));
+        }
         props->textbox_text = ui_manager_render_text(page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
         return;
-
     }
 
     if(interaction_manager.interacting != self) return;
 
     if(!props->is_shop){
-        if(gfc_input_key_released(" ")){
+        if(gfc_input_command_released("advance_text")){
             if(interaction_manager.current_page >= props->textbox_pages - 1){
                 interaction_manager.interacting = NULL;
                 return;
@@ -57,12 +69,30 @@ void npc_think(Entity* self){
             props->textbox_text = ui_manager_render_text((char*)page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
 
         }
+    } else if(props->has_quest) {
+        char* name;
+        EventType type;
+        int tag;
+
+        name = sj_object_get_value(quest, "name");
+        type = sj_get_integer_value(quest, "type");
+        tag = sj_get_integer_value(quest, "type");
+
+        if(gfc_input_command_released("advance_text")){
+            interaction_manager.interacting = NULL;
+            return;
+        } else if (gfc_input_command_released("fire_weapon")) {
+            add_quest(name, type, tag, 0);
+            interaction_manager.interacting = NULL;
+            return;
+        }
+
     } else {
-        if(gfc_input_key_released(" ")){
+        if(gfc_input_command_released("advance_text")){
             interaction_manager.interacting = NULL;
         }
 
-        if(gfc_input_key_released("z")){
+        if(gfc_input_command_released("fire_weapon")){
             if(player_spend_money(props->sell_price)){
                 inventory_add_consumable(props->sell_type, 1);
             }
@@ -81,7 +111,7 @@ void npc_cleanup(Entity* self){
 
 Entity* npc_new(char* path){
 
-    int is_shop;
+    int is_shop, has_quest;
 
     Entity* npc = entity_new();
     NpcProps* props = (NpcProps*)npc->data;
@@ -119,6 +149,9 @@ Entity* npc_new(char* path){
     sj_get_integer_value(sj_object_get_value(npc_def, "is_shop"), &is_shop);
     props->is_shop = is_shop;
 
+    sj_get_integer_value(sj_object_get_value(npc_def, "has_quest"), &has_quest);
+    props->has_quest = has_quest;
+    
     props->textbox_pages = sj_array_get_count(sj_object_get_value(npc_def, "pages"));
 
     SJson* sell_item = sj_object_get_value(npc_def, "item");
@@ -127,6 +160,7 @@ Entity* npc_new(char* path){
         sj_get_integer_value(sj_array_get_nth(sell_item, 0), &type);
         sj_get_integer_value(sj_array_get_nth(sell_item, 1), &price);
     }
+    
     props->sell_type = type;
     props->sell_price = price;
 

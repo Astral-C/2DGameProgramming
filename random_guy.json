@@ -1,6 +1,13 @@
 {
     "img" : "images/elf.png",
     "interact" : [212, 208, 16, 16],
-    "pages" : ["Hi, I am a generic NPC.", "Isn't that just neat?", "Well ok, bye."],
+    "pages" : ["Hi, I am a generic NPC.", "Isn't that just neat?", "Thanks for doing my quest."],
+    "has_quest" : 1,
+    "quest" : {
+        "name" : "rg_kill_5_bats",
+        "type" : 0,
+        "tag" : 0,
+        "incomplete_text" : "Hey, can you kill 5 bats for me?"
+    },
     "is_shop" : 0
 }

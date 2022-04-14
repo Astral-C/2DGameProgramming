@@ -455,6 +455,7 @@ Entity* bat_new(){
     ent->scale = vector2d(4,4);
     ent->velocity = vector2d(gfc_crandom(), gfc_crandom()); // choose a random direction to move in to find a home
     bat->move_timer = EnemyConfigs.BatConfig.move_timer;
+    bat->type = ENEMY_BAT;
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {16*4, 16*4}};
     ent->type = ENT_ENEMY;
     
@@ -471,6 +472,7 @@ Entity* golem_new(){
     golem->charge_timer = EnemyConfigs.GolemConfig.charge_timer;
     golem->range = EnemyConfigs.GolemConfig.range;
     ent->health = EnemyConfigs.GolemConfig.health;
+    golem->type = ENEMY_GOLEM;
 
     ent->sprite = gf2d_sprite_load_all("images/golem.png", 128, 128, 7);
     ent->scale = vector2d(1,1);
@@ -493,7 +495,8 @@ Entity* skull_new(){
     skull->start = 0;
     skull->amplitude = EnemyConfigs.SkullConfig.amplitude;
     skull->lifetime = EnemyConfigs.SkullConfig.lifetime;
-    
+    skull->type = ENEMY_SKULL;
+
     ent->sprite = gf2d_sprite_load_all("images/skull.png", 64, 64, 2);
     ent->scale = vector2d(1,1);
     ent->draw_offset = vector2d(0, 0);
@@ -514,6 +517,7 @@ Entity* mushroom_new(){
     ent->health = 5;
     mushroom->attack_timer = EnemyConfigs.MushConfig.attack_timer;
     mushroom->range = EnemyConfigs.MushConfig.range;
+    mushroom->type = ENEMY_MUSHROOM;
     
     ent->sprite = gf2d_sprite_load_all("images/mush.png", 32, 32, 1);
     ent->scale = vector2d(1,1);
@@ -522,6 +526,7 @@ Entity* mushroom_new(){
     ent->hurtbox = (Rect){{ent->position.x, ent->position.y}, {32, 32}};
     ent->frame = 0;
     ent->type = ENT_ENEMY;
+
 
     return ent; 
 }
@@ -555,6 +560,7 @@ Entity* magician_new(){
     magician->wander_range = EnemyConfigs.MagicianConfig.wander_range;
     magician->idle_timer = EnemyConfigs.MagicianConfig.idle_timer;
     magician->home_set = 0;
+    magician->type = ENEMY_MAGICIAN;
     
     ent->sprite = gf2d_sprite_load_all("images/magician.png", 64, 64, 4);
     ent->scale = vector2d(1,1);

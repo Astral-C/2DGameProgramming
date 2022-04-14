@@ -3,6 +3,7 @@
 #include "gf2d_graphics.h"
 #include "menu.h"
 #include "player.h"
+#include "enemy.h"
 #include "inventory.h"
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -150,10 +151,22 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
     }
 
     if(*gamestate == 2){ //edit mode ui
-        if(entity_manager_get_player() != NULL){
+        Entity* current = entity_manager_get_player();
+        if(current != NULL){
             nk_begin(ctx, "Entity Inspector", nk_rect(0, 0, 300, 300), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE);
-
-            
+            nk_layout_row_dynamic(ctx, 32, 1);
+            if(current->type == ENT_ENEMY){
+                EnemyType e = *((EnemyType*)current->data);
+                switch (e)
+                {
+                case ENEMY_GOLEM:
+                    nk_label(ctx, "Golem Selected", NK_TEXT_ALIGN_CENTERED);
+                    break;
+                case ENEMY_SKULL:
+                    nk_label(ctx, "SKULL Selected", NK_TEXT_ALIGN_CENTERED);
+                    break;
+                }
+            }
 
             nk_end(ctx);
         }

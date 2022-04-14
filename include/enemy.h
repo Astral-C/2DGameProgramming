@@ -9,7 +9,8 @@ typedef enum {
     ENEMY_SKULL,
     ENEMY_GOLEM,
     ENEMY_MUSHROOM,
-    ENEMY_MAGICIAN
+    ENEMY_MAGICIAN,
+    ENEMY_SPAWNER
 } EnemyType;
 
 typedef enum {
@@ -20,6 +21,7 @@ typedef enum {
 } EnemyState;
 
 typedef struct {
+    EnemyType type;
     Uint8 _time_next_spawn;
     Uint8 _remaining_ents;
     Uint8 spawn_amount;
@@ -29,6 +31,7 @@ typedef struct {
 } EnemySpawnerProps;
 
 typedef struct {
+    EnemyType type;
     Uint16 move_timer;
     UIElement* healthbar;
     EnemyState state;
@@ -36,6 +39,7 @@ typedef struct {
 } BatEnemyProps;
 
 typedef struct {
+    EnemyType type;
     UIElement* healthbar;
     EnemyState state;
     Uint16 range;        // How close a player must stand to a golem's home 
@@ -44,6 +48,7 @@ typedef struct {
 } GolemEnemyProps;
 
 typedef struct {
+    EnemyType type;
     UIElement* healthbar;
     EnemyState state;
     Uint8 amplitude;
@@ -53,13 +58,14 @@ typedef struct {
 } SkullEnemyProps;
 
 typedef struct {
-    //UIElement* healthbar;
+    EnemyType type;
     EnemyState state;
     Uint8 attack_timer;
     Uint16 range;
 } MushroomEnemyProps;
 
 typedef struct {
+    EnemyType type;
     UIElement* healthbar;
     EnemyState state;
     Uint16 throw_timer;

@@ -29,6 +29,10 @@
             "keys" : ["x"]
         },
         {
+            "command" : "advance_text",
+            "keys" : [" "]
+        },
+        {
             "command" : "strafe",
             "keys" : ["LSHIFT"]
         },
