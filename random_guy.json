@@ -1,7 +1,7 @@
 {
     "img" : "images/elf.png",
     "interact" : [212, 208, 16, 16],
-    "pages" : ["Hi, I am a generic NPC.", "Isn't that just neat?", "Thanks for doing my quest."],
+    "pages" : ["I really hate bats", "The way they fly around it's... disturbing.", "Thanks for killing them!"],
     "has_quest" : 1,
     "quest" : {
         "name" : "rg_kill_5_bats",

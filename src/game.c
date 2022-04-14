@@ -69,8 +69,8 @@ int main(int argc, char * argv[])
     map_load("test_map.json");
 
     quest_manager_init();
-    add_quest("kill_5_bats", ET_KillEnemy, ENEMY_BAT, 5);
-    activate_quest("kill_5_bats");
+    //add_quest("kill_5_bats", ET_KillEnemy, ENEMY_BAT, 5);
+    //activate_quest("kill_5_bats");
 
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
     init_menu();

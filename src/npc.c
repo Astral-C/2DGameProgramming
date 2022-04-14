@@ -30,11 +30,13 @@ static InteractionManager interaction_manager = {0};
 
 void npc_think(Entity* self){
     SJson* quest;
+    char* quest_name;
     Entity* p = entity_manager_get_player();
     NpcProps* props = (NpcProps*)self->data;
 
     if(props->has_quest){
         quest = sj_object_get_value(props->npc_json, "quest");
+        quest_name = sj_get_string_value(sj_object_get_value(quest, "name"));
     }
 
     if(!interaction_manager.interacting && interaction_manager.requested_interaction && rect_collider(self->hurtbox, p->hurtbox)){
@@ -46,7 +48,7 @@ void npc_think(Entity* self){
         gf2d_sprite_free(props->textbox_text);
 
         char* page_text = "";
-        if(!props->has_quest){
+        if(!props->has_quest || (props->has_quest && quest_manager_check_completion(quest_name) == 1)){
             page_text = (char*)sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
         } else {
             page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "incomplete_text"));
@@ -57,8 +59,37 @@ void npc_think(Entity* self){
 
     if(interaction_manager.interacting != self) return;
 
-    if(!props->is_shop){
+    if(props->is_shop){
         if(gfc_input_command_released("advance_text")){
+            interaction_manager.interacting = NULL;
+        }
+
+        if(gfc_input_command_released("fire_weapon")){
+            if(player_spend_money(props->sell_price)){
+                inventory_add_consumable(props->sell_type, 1);
+            }
+        }
+    } else if(!props->is_shop && props->has_quest && quest_manager_check_completion(quest_name) == 0xFF) {
+        EventType type;
+        int tag;
+
+        type = sj_get_integer_value(quest, "type");
+        tag = sj_get_integer_value(quest, "type");
+
+        if(gfc_input_command_released("switch_weapon")){
+            interaction_manager.interacting = NULL;
+            return;
+        } else if (gfc_input_command_released("fire_weapon")) {
+            if(quest_manager_check_completion(quest_name) == 0xFF){
+                add_quest(quest_name, type, tag, 5);
+                activate_quest(quest_name);
+            }
+            interaction_manager.interacting = NULL;
+            return;
+        }
+
+    } else {
+        if(gfc_input_command_released("fire_weapon")){
             if(interaction_manager.current_page >= props->textbox_pages - 1){
                 interaction_manager.interacting = NULL;
                 return;
@@ -68,34 +99,6 @@ void npc_think(Entity* self){
             const char* page_text = sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page));
             props->textbox_text = ui_manager_render_text((char*)page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
 
-        }
-    } else if(props->has_quest) {
-        char* name;
-        EventType type;
-        int tag;
-
-        name = sj_object_get_value(quest, "name");
-        type = sj_get_integer_value(quest, "type");
-        tag = sj_get_integer_value(quest, "type");
-
-        if(gfc_input_command_released("advance_text")){
-            interaction_manager.interacting = NULL;
-            return;
-        } else if (gfc_input_command_released("fire_weapon")) {
-            add_quest(name, type, tag, 0);
-            interaction_manager.interacting = NULL;
-            return;
-        }
-
-    } else {
-        if(gfc_input_command_released("advance_text")){
-            interaction_manager.interacting = NULL;
-        }
-
-        if(gfc_input_command_released("fire_weapon")){
-            if(player_spend_money(props->sell_price)){
-                inventory_add_consumable(props->sell_type, 1);
-            }
         }
 
     }

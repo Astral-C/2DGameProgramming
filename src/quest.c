@@ -56,7 +56,7 @@ Uint8 quest_manager_check_completion(char* quest_name){
     q = gfc_hashmap_get(quests.available_quests, quest_name); 
     
     if(!q){
-        return 0;
+        return 0xFF;
     }
 
     return q->is_complete;
