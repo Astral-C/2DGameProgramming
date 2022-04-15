@@ -20,7 +20,7 @@
     ],
     "npcs" : [
         "shopkeep.json",
-        "random_guy.json"
+        "test_npc.json"
     ],
     "warps" : [
         {

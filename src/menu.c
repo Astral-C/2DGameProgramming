@@ -5,6 +5,7 @@
 #include "player.h"
 #include "enemy.h"
 #include "inventory.h"
+#include "npc.h"
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -31,7 +32,11 @@ static int show_console = 0;
 static int debug_menu_enabled = 0;
 static int is_paused = 0;
 static int show_hitbox = 1;
+static int in_shop = 0;
 static TextLine command_line = {0};
+static TextLine resource_location = {0};
+static TextLine tb = {0};
+static int page = 0;
 
 void menu_input_begin(){
     nk_input_begin(ctx);
@@ -125,6 +130,9 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         nk_end(ctx);
     }
 
+    if(in_shop){
+
+    }
 
     if(debug_menu_enabled){
         if (nk_begin(ctx, "Debug", nk_rect(50, 50, 230, 250), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE)){
@@ -155,7 +163,10 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         if(current != NULL){
             nk_begin(ctx, "Entity Inspector", nk_rect(0, 0, 300, 300), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE);
             nk_layout_row_dynamic(ctx, 32, 1);
-            if(current->type == ENT_ENEMY){
+            
+            switch (current->type)
+            {
+            case ENT_ENEMY:
                 EnemyType e = *((EnemyType*)current->data);
                 switch (e)
                 {
@@ -166,6 +177,58 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
                     nk_label(ctx, "SKULL Selected", NK_TEXT_ALIGN_CENTERED);
                     break;
                 }
+                break;
+            
+            case ENT_NPC:
+                NpcProps* props = (NpcProps*)current->data;
+                nk_label(ctx, "Text Pages", NK_TEXT_ALIGN_LEFT);
+                
+                for(int i = 0; i < props->textbox_pages; i++){
+                    char* label =  sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), i));
+                    if(label == NULL){
+                        continue;
+                    }
+                    if(nk_button_label(ctx,label)){
+                        memcpy(tb, sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), i)), sizeof(tb));
+                        page = i;
+                    }
+                }
+
+                //add page button
+                nk_layout_row_dynamic(ctx, 16, 2);
+                if(nk_button_label(ctx, "+")){
+                    sj_array_append(sj_object_get_value(props->npc_json, "pages"), sj_new_str(tb));
+                    props->textbox_pages++;
+                }
+
+                if(nk_button_label(ctx, "-")){
+                    sj_array_delete_nth(sj_object_get_value(props->npc_json, "pages"), page);
+                    props->textbox_pages--;
+                }
+                nk_layout_row_dynamic(ctx, 32, 1);
+
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, tb, sizeof(TextLine), nk_filter_default);
+                if(nk_button_label(ctx, "Set Text")){                
+                    SJson* str = sj_new_str(tb);
+                    sj_array_replace_nth(sj_object_get_value(props->npc_json, "pages"), page, str);
+                }
+
+                struct nk_image sprite = nk_image_ptr(current->sprite->texture);
+                nk_layout_row_static(ctx, current->sprite->frame_h, current->sprite->frame_w, 1);
+                //nk_image(ctx, sprite);
+                if(nk_button_image(ctx, sprite)){
+                }
+                nk_layout_row_dynamic(ctx, 32, 1);
+
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, resource_location, sizeof(TextLine), nk_filter_default);
+                if(nk_button_label(ctx, "Save Npc")){
+                    sj_save(props->npc_json, resource_location);
+                }
+                break;
+
+
+            default:
+                break;
             }
 
             nk_end(ctx);

@@ -35,7 +35,7 @@ typedef struct ENT_S {
 
     //This forces 32B alignment so there arent any isssues with casting it
     union {
-        Uint8 data[32];  /**<extra entity data (can be cast depending on expected type) */
+        Uint8 data[40];  /**<extra entity data (can be cast depending on expected type) */
         intmax_t alignment_force;
     };
 

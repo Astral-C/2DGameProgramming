@@ -9,6 +9,7 @@ typedef struct {
     Map current_map;
     int should_warp;
     Warp warp_target;
+    TextLine map_jsn_path;
 } MapManager;
 
 static MapManager map_manager = {0};
@@ -25,12 +26,15 @@ void map_load(char* map_def){
 
     SJson* jsn;
 
+
     jsn = sj_load(map_def);
     
     if(!jsn){
         slog("Unable to open map def %s");
         return;
     }
+    
+    gfc_line_cpy(map_manager.map_jsn_path, map_def);
 
     /* Note: I may change this later to build the map from a tiled json export, we'll see */
 

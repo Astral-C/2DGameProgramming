@@ -7,24 +7,7 @@
 #include "player.h"
 #include "camera.h"
 #include "quest.h"
-
-
-typedef struct {
-    Entity* interacting;
-    Uint8 requested_interaction;
-    Uint8 current_page;
-} InteractionManager;
-
-
-typedef struct {
-    SJson* npc_json; // 5
-    Sprite* textbox_text; // 9
-    Uint32 textbox_pages; // 12
-    Uint32 sell_type; // 16
-    Uint32 sell_price; // 20
-    Uint8 is_shop; // 1
-    Uint8 has_quest;
-} NpcProps;
+#include "menu.h"
 
 static InteractionManager interaction_manager = {0};
 
@@ -44,14 +27,18 @@ void npc_think(Entity* self){
         interaction_manager.interacting = self;
         interaction_manager.requested_interaction = 0;
         interaction_manager.current_page = 0;
-        
+
         gf2d_sprite_free(props->textbox_text);
 
         char* page_text = "";
         if(!props->has_quest || (props->has_quest && quest_manager_check_completion(quest_name) == 1)){
             page_text = (char*)sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
         } else {
-            page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "incomplete_text"));
+            if(props->has_quest && quest_manager_check_completion(quest_name) == 0){
+                page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "progress_msg"));
+            } else {
+                page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "incomplete_text"));
+            }
         }
         props->textbox_text = ui_manager_render_text(page_text, (SDL_Color){0xFF, 0xFF, 0xFF, 0xFF});
         return;
@@ -60,7 +47,7 @@ void npc_think(Entity* self){
     if(interaction_manager.interacting != self) return;
 
     if(props->is_shop){
-        if(gfc_input_command_released("advance_text")){
+        if(gfc_input_command_released("switch_weapon")){
             interaction_manager.interacting = NULL;
         }
 
@@ -88,6 +75,11 @@ void npc_think(Entity* self){
             return;
         }
 
+    } else if (props->has_quest && quest_manager_check_completion(quest_name) == 0){
+        if(gfc_input_command_released("fire_weapon")){
+            interaction_manager.interacting = NULL;
+            return;
+        }  
     } else {
         if(gfc_input_command_released("fire_weapon")){
             if(interaction_manager.current_page >= props->textbox_pages - 1){
@@ -117,6 +109,7 @@ Entity* npc_new(char* path){
     int is_shop, has_quest;
 
     Entity* npc = entity_new();
+    npc->type = ENT_NPC;
     NpcProps* props = (NpcProps*)npc->data;
 
     SJson* npc_def = sj_load(path);

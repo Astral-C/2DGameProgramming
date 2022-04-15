@@ -1,5 +1,5 @@
 {
-    "img" : "images/elf.png",
+    "img" : "images/npc/elf.png",
     "interact" : [212, 208, 16, 16],
     "pages" : ["I really hate bats", "The way they fly around it's... disturbing.", "Thanks for killing them!"],
     "has_quest" : 1,
@@ -7,7 +7,8 @@
         "name" : "rg_kill_5_bats",
         "type" : 0,
         "tag" : 0,
-        "incomplete_text" : "Hey, can you kill 5 bats for me?"
+        "incomplete_text" : "Hey, can you kill 5 bats for me?",
+        "progress_msg" : "You done killing those bats yet? Get to it!"
     },
     "is_shop" : 0
 }
