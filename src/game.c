@@ -16,6 +16,7 @@
 #include "inventory.h"
 #include "quest.h"
 #include "menu.h"
+#include "audio.h"
 
 typedef enum {
     PLAY,
@@ -29,9 +30,7 @@ int main(int argc, char * argv[])
     int done = 0;
     const Uint8 * keys;
 
-
     gamestate state = PLAY;
-
     float mf = 0;
     
     srand(time(0));
@@ -49,6 +48,8 @@ int main(int argc, char * argv[])
         0);
     gf2d_graphics_set_frame_delay(16);
     gf2d_sprite_init(1024);
+    
+    init_audio_sys();
     
     entity_manager_init(1024);
     ui_manager_init_default(50);
@@ -69,24 +70,11 @@ int main(int argc, char * argv[])
     map_load("levels/test_map.json");
 
     quest_manager_init();
-    //add_quest("kill_5_bats", ET_KillEnemy, ENEMY_BAT, 5);
-    //activate_quest("kill_5_bats");
+
 
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
     init_menu();
 
-	SDL_AudioSpec target_format;
-	target_format.freq = 44100;
-	target_format.format = AUDIO_S16;
-	target_format.channels = 2;
-	target_format.samples = 4096;
-	target_format.callback = map_manager_audio_update;
-	target_format.userdata = NULL;
-
-	SDL_AudioSpec device_format;
-	SDL_AudioDeviceID dev = SDL_OpenAudioDevice(NULL, 0, &target_format, &device_format, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
-    SDL_PauseAudioDevice(dev, 0); //start playing
-    
     /*main game loop*/
     while(!done)
     {
@@ -164,8 +152,6 @@ int main(int argc, char * argv[])
     }
 
     map_cleanup(); //clean up whatever is left of the loaded level
-
-    SDL_CloseAudioDevice(dev);
 
     slog("---==== END ====---");
     return 0;

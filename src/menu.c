@@ -352,8 +352,8 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 
                     struct nk_image sprite = nk_image_ptr(current->sprite->texture);
                     nk_layout_row_static(ctx, current->sprite->frame_h, current->sprite->frame_w, 1);
-                    //nk_image(ctx, sprite);
                     if(nk_button_image(ctx, sprite)){
+                        //i dunno, do some sort of fs select for filepaths from npc assets folder?
                     }
                     nk_layout_row_dynamic(ctx, 32, 1);
 

@@ -4,6 +4,7 @@
 #include "simple_logger.h"
 #include "enemy.h"
 #include "npc.h"
+#include "audio.h"
 
 typedef struct {
     Uint8 editing;
@@ -31,14 +32,6 @@ void map_cleanup(){
     if(map_manager.current_map.warps != NULL){
         free(map_manager.current_map.warps);
     }
-    if(map_manager.current_music.loaded_mod){
-        tracker_close_mod(&map_manager.current_music);
-    }
-}
-
-void map_manager_audio_update(void* userdata, uint8_t* stream, int len){
-	len /= sizeof(int16_t);
-	tracker_mod_update(&map_manager.current_music, (int16_t*)stream, (uint32_t)len);
 }
 
 void map_load(char* map_def){
@@ -62,12 +55,10 @@ void map_load(char* map_def){
     char* map_bg = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_bg"));
     char* music_bg = (char*)sj_get_string_value(sj_object_get_value(jsn, "music_ambient"));
 
-    //if(map_manager.current_music.loaded_mod){
-    //    tracker_close_mod(&map_manager.current_music);
-    //}
-
-    tracker_open_mod(&map_manager.current_music, music_bg);
-    tracker_mod_set_sample_rate(&map_manager.current_music, 44100);
+    if(music_bg != NULL){
+        audio_open_mod(music_bg);
+        audio_play_mod();
+    }
 
     short is_town = 0;
     sj_get_bool_value(sj_object_get_value(jsn, "is_town"), &is_town);
