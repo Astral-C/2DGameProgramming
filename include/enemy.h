@@ -76,6 +76,43 @@ typedef struct {
     Uint8 home_set;
 } MagicianEnemyProps;
 
+typedef struct {
+    struct {
+        Uint8 health;
+        Uint8 range;
+        Uint16 move_timer;
+    } BatConfig;
+    
+    struct {
+        Uint8 health;
+        Uint8 amplitude;
+        Uint16 lifetime;
+        float spawn_y;
+        float start;
+    } SkullConfig;
+    
+    struct {
+        Uint8 health;
+        Uint16 range; 
+        Uint8 charge_speed;
+        Uint8 charge_timer;
+    } GolemConfig;
+    
+    struct {
+        Uint8 health;
+        Uint16 range;
+        Uint8 attack_timer;
+    } MushConfig;
+    
+    struct {
+        Uint8 health;
+        Uint16 throw_timer;
+        Uint16 throw_range;
+        Uint16 wander_range;
+        Uint16 idle_timer;
+    } MagicianConfig;
+} ConfigData;
+
 Entity* enemy_spawner_new(EnemyType type, Uint8 spawn_count, Uint8 spawn_interval, Uint8 max_entities);
 
 Entity* bat_new();
@@ -88,5 +125,7 @@ Entity* magician_new();
 Entity* throwable_atk_new(Entity* thrower, char* sprite_path);
 
 void load_enemy_configs();
+ConfigData* get_enemy_configs();
+
 
 #endif

@@ -6,10 +6,12 @@
 #include "npc.h"
 
 typedef struct {
+    Uint8 editing;
     Map current_map;
     int should_warp;
     Warp warp_target;
     TextLine map_jsn_path;
+    ModTracker current_music;
 } MapManager;
 
 static MapManager map_manager = {0};
@@ -22,10 +24,26 @@ int current_map_height(){
     return map_manager.current_map.map_height;
 }
 
+void map_cleanup(){
+    if(map_manager.current_map.collision != NULL){
+        free(map_manager.current_map.collision);
+    }
+    if(map_manager.current_map.warps != NULL){
+        free(map_manager.current_map.warps);
+    }
+    if(map_manager.current_music.loaded_mod){
+        tracker_close_mod(&map_manager.current_music);
+    }
+}
+
+void map_manager_audio_update(void* userdata, uint8_t* stream, int len){
+	len /= sizeof(int16_t);
+	tracker_mod_update(&map_manager.current_music, (int16_t*)stream, (uint32_t)len);
+}
+
 void map_load(char* map_def){
 
     SJson* jsn;
-
 
     jsn = sj_load(map_def);
     
@@ -42,6 +60,15 @@ void map_load(char* map_def){
     char* map_fg = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_fg"));
     char* map_deco = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_deco"));
     char* map_bg = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_bg"));
+    char* music_bg = (char*)sj_get_string_value(sj_object_get_value(jsn, "music_ambient"));
+
+    //if(map_manager.current_music.loaded_mod){
+    //    tracker_close_mod(&map_manager.current_music);
+    //}
+
+    tracker_open_mod(&map_manager.current_music, music_bg);
+    tracker_mod_set_sample_rate(&map_manager.current_music, 44100);
+
     short is_town = 0;
     sj_get_bool_value(sj_object_get_value(jsn, "is_town"), &is_town);
     SJson* collision = sj_object_get_value(jsn, "collision");
@@ -110,7 +137,6 @@ void map_load(char* map_def){
             Entity* ent = enemy_spawner_new(type, count, interval, max_entities);
             ent->position.x = (float)(x << 2);
             ent->position.y = (float)(y << 2);
-
         }
 
         int enemy_count = sj_array_get_count(enemies);

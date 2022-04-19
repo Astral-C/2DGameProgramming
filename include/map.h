@@ -3,6 +3,7 @@
 #include "gf2d_sprite.h"
 #include "gfc_list.h"
 #include "rect.h"
+#include "tracker.h"
 #include "pg_entity.h"
 
 typedef enum {
@@ -38,6 +39,9 @@ typedef struct {
 //TODO: Write free func
 
 void map_load(char* name);
+void map_cleanup();
+
+void map_manager_audio_update();
 
 Uint8 collide_worldp(Vector2D p);
 Uint8 ent_collide_world(Entity* ent);

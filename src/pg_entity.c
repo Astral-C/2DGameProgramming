@@ -10,6 +10,8 @@ typedef struct {
     Uint32 max_entities;
     Entity *entity_list;
     Entity* player;
+    Entity* selected; // used for the editor only
+    Uint8 dragging;
     Uint8 draw_debug;
 } EntityManager;
 
@@ -50,7 +52,14 @@ void draw_entity(Entity* ent){
     if(ent->sprite == NULL) return;
     Vector2D drawpos;
     Vector2D cam_pos = get_camera_pos();
-    Vector4D color_overlay = vector4d(255, 255, 255, (ent->visible ? 255 : 255/2));
+    Vector4D color_overlay;
+    
+    if(ent->type == ENT_PLAYER){
+        color_overlay = vector4d(255, 255, 255, (ent->visible ? 255 : 255/2));
+    } else {
+        if(!entity_manager.draw_debug) color_overlay = vector4d(255, 255, 255, (ent->visible ? 255 : 0));
+    }
+
     vector2d_add(drawpos, ent->position, ent->draw_offset);
     vector2d_sub(drawpos, drawpos, cam_pos);
     gf2d_sprite_draw(ent->sprite, drawpos, &ent->scale, NULL, &ent->rotation, &ent->flip, &color_overlay, (Uint32)ent->frame);
@@ -97,16 +106,27 @@ void entity_manager_think_all(){
 void entity_manager_think_edit(){
     int i, x, y;
     Uint32 state;
-    Vector2D mouse_pos;
+    Vector2D mouse_pos, offset;
     state = SDL_GetMouseState(&x, &y);
     mouse_pos = vector2d(x, y);
     vector2d_add(mouse_pos, get_camera_pos(), mouse_pos);
-    for(i=0;i<entity_manager.max_entities;i++){
-        if(entity_manager.entity_list[i]._inuse){
-            if(state & SDL_BUTTON_LMASK != 0 && rect_collidep(mouse_pos, entity_manager.entity_list[i].hurtbox)){
-                entity_manager.player = &entity_manager.entity_list[i];
+    if(state & SDL_BUTTON_LMASK != 0){
+        for(i=0;i<entity_manager.max_entities;i++){
+            if(entity_manager.entity_list[i]._inuse){
+                if(rect_collidep(mouse_pos, entity_manager.entity_list[i].hurtbox) && entity_manager.dragging == 0){
+                    entity_manager.selected = &entity_manager.entity_list[i];
+                    entity_manager.dragging = 1;
+                }
             }
         }
+    } else if(entity_manager.dragging == 1) {
+        entity_manager.dragging = 0;
+    }
+
+    if(entity_manager.selected != NULL && entity_manager.dragging){
+        vector2d_scale(offset, entity_manager.selected->hurtbox.size, 0.5);
+        vector2d_sub(entity_manager.selected->position, mouse_pos, offset);
+        entity_manager.selected->hurtbox.pos = entity_manager.selected->position;
     }
 }
 
@@ -139,6 +159,10 @@ void entity_manager_reset_player(){
 
 Entity* entity_manager_get_player(){
     return entity_manager.player;
+}
+
+Entity* entity_manager_get_selected(){
+    return entity_manager.selected;
 }
 
 void entity_free(Entity* ent){

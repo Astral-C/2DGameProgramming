@@ -109,6 +109,7 @@ void entity_manager_reset_player();
 */
 Entity* entity_manager_get_player();
 
+Entity* entity_manager_get_selected();
 
 void entity_manager_think_edit();
 

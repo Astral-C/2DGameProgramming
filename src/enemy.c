@@ -6,42 +6,7 @@
 #include "player.h"
 #include "quest.h"
 
-static struct {
-    struct {
-        Uint8 health;
-        Uint8 range;
-        Uint16 move_timer;
-    } BatConfig;
-    
-    struct {
-        Uint8 health;
-        Uint8 amplitude;
-        Uint16 lifetime;
-        float spawn_y;
-        float start;
-    } SkullConfig;
-    
-    struct {
-        Uint8 health;
-        Uint16 range; 
-        Uint8 charge_speed;
-        Uint8 charge_timer;
-    } GolemConfig;
-    
-    struct {
-        Uint8 health;
-        Uint16 range;
-        Uint8 attack_timer;
-    } MushConfig;
-    
-    struct {
-        Uint8 health;
-        Uint16 throw_timer;
-        Uint16 throw_range;
-        Uint16 wander_range;
-        Uint16 idle_timer;
-    } MagicianConfig;
-} EnemyConfigs = {0};
+static ConfigData EnemyConfigs = {0};
 
 /*
 
@@ -438,6 +403,28 @@ Entity* enemy_spawner_new(EnemyType type, Uint8 spawn_count, Uint8 spawn_interva
     spawner->_time_next_spawn = spawner->spawn_interval;
 
     ent->think = enemy_spawner_think;
+    ent->hurtbox = (Rect){{0,0},{64,64}};
+    
+    ent->scale = vector2d(4,4);
+
+    spawner->type = ENEMY_SPAWNER;
+
+    ent->visible = 0;
+    
+    switch (type){
+    case ENEMY_BAT:
+        ent->sprite = gf2d_sprite_load_image("images/bat_spawner.png");
+        break;
+
+    case ENEMY_SKULL:
+        ent->sprite = gf2d_sprite_load_image("images/skull_spawner.png");
+        break;
+    
+    default:
+        break;
+    }
+
+    ent->type = ENT_ENEMY; //todo: add a spawner entity type?
 
     return ent;
 }
@@ -757,5 +744,12 @@ void load_enemy_configs(){
 
         sj_free(mag_def);
     }
+}
 
+ConfigData* get_enemy_configs(){
+    return &EnemyConfigs;
+}
+
+void save_enemy_configs(){
+    //todo
 }

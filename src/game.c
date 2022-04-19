@@ -66,7 +66,7 @@ int main(int argc, char * argv[])
     entity_manager_reset_player();
     set_camera_target(p);
 
-    map_load("test_map.json");
+    map_load("levels/test_map.json");
 
     quest_manager_init();
     //add_quest("kill_5_bats", ET_KillEnemy, ENEMY_BAT, 5);
@@ -75,6 +75,18 @@ int main(int argc, char * argv[])
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
     init_menu();
 
+	SDL_AudioSpec target_format;
+	target_format.freq = 44100;
+	target_format.format = AUDIO_S16;
+	target_format.channels = 2;
+	target_format.samples = 4096;
+	target_format.callback = map_manager_audio_update;
+	target_format.userdata = NULL;
+
+	SDL_AudioSpec device_format;
+	SDL_AudioDeviceID dev = SDL_OpenAudioDevice(NULL, 0, &target_format, &device_format, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+    SDL_PauseAudioDevice(dev, 0); //start playing
+    
     /*main game loop*/
     while(!done)
     {
@@ -148,8 +160,12 @@ int main(int argc, char * argv[])
         //slog("Ticks this frame %i", SDL_GetTicks() - start);
         
         if (keys[SDL_SCANCODE_ESCAPE])done = 1; // exit condition
-        //printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());
+        printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());
     }
+
+    map_cleanup(); //clean up whatever is left of the loaded level
+
+    SDL_CloseAudioDevice(dev);
 
     slog("---==== END ====---");
     return 0;
