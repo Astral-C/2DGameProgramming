@@ -59,6 +59,10 @@
         {
             "command" : "toggle_console",
             "keys" : ["F1"]
+        },
+        {
+            "command" : "pause",
+            "keys" : ["ESCAPE"]
         }
     ]
 }

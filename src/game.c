@@ -20,8 +20,9 @@
 
 typedef enum {
     PLAY,
-    MENU,
-    EDIT
+    MAIN_MENU,
+    EDIT,
+    QUIT
 } gamestate;
 
 int main(int argc, char * argv[])
@@ -30,7 +31,7 @@ int main(int argc, char * argv[])
     int done = 0;
     const Uint8 * keys;
 
-    gamestate state = PLAY;
+    gamestate state = MAIN_MENU;
     float mf = 0;
     
     srand(time(0));
@@ -76,7 +77,7 @@ int main(int argc, char * argv[])
     init_menu();
 
     /*main game loop*/
-    while(!done)
+    while(state != QUIT)
     {
         //int start = SDL_GetTicks();
         SDL_PumpEvents();   // update SDL's internal event structures
@@ -118,7 +119,7 @@ int main(int argc, char * argv[])
 
                 break;
 
-            case MENU:
+            case MAIN_MENU:
                 menu_draw();
                 break;
 
@@ -147,7 +148,6 @@ int main(int argc, char * argv[])
         gf2d_grahics_next_frame();// render current draw frame and skip to the next frame
         //slog("Ticks this frame %i", SDL_GetTicks() - start);
         
-        if (keys[SDL_SCANCODE_ESCAPE])done = 1; // exit condition
         printf("Rendering at %f FPS\r",gf2d_graphics_get_frames_per_second());
     }
 

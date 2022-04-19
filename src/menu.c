@@ -7,6 +7,7 @@
 #include "enemy.h"
 #include "inventory.h"
 #include "npc.h"
+#include "audio.h"
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -36,6 +37,9 @@ static int is_paused = 0;
 static int show_hitbox = 1;
 static TextLine command_line = {0};
 static TextLine resource_location = {0};
+static Entity* prev_selected = NULL;
+
+static Sprite* start_bg = NULL;
 
 static const char* enemy_types[] = {
     "Bat",
@@ -51,7 +55,7 @@ static struct {
     TextLine quest_prompt;
     TextLine quest_progress;
     TextLine quest_id;
-    int loaded_text;
+    int quest_loaded;
 } NpcEditor = {0};
 
 ConfigData* EnemyConfigs;
@@ -59,6 +63,10 @@ ConfigData* EnemyConfigs;
 static struct {
     Rect* selected;
 } MapEditor = {0};
+
+void set_style_transparent(){
+    ctx->style.window.background = nk_rgba(0, 0, 0, 0);
+}
 
 void menu_input_begin(){
     nk_input_begin(ctx);
@@ -86,6 +94,8 @@ void init_menu(){
 
     is_paused = 0;
 
+    start_bg = gf2d_sprite_load_image("images/main_menu.png");
+
     EnemyConfigs = get_enemy_configs();
 
     atexit(nk_sdl_shutdown);
@@ -112,12 +122,15 @@ void process_cmd(){
             entity_manager_kill_enemies();
         }
     }
-    if(gfc_line_cmp(cmd, "music")){
+    if(gfc_line_cmp(cmd, "music") == 0){
         cmd = strtok(NULL, " ");
         if(cmd == NULL) return;
 
-        if(strcmp(cmd, "play")){
-            //SDL_PauseAudioDevice(dev, 0);
+        if(strcmp(cmd, "play") == 0){
+            audio_play_mod();
+        }
+        if(strcmp(cmd, "pause") == 0){
+            audio_pause_mod();
         }
     }
     if(gfc_line_cmp(cmd, "give") == 0){
@@ -152,12 +165,40 @@ void process_cmd(){
 
 void menu_update(int* gamestate){ //Because the menu system can change the state of the game it needs access to it
     if(ctx == NULL) return;
+    
+
+    if(gfc_input_command_released("pause")){
+        is_paused = 1;
+    }
+
+    if(is_paused){
+        nk_style_push_color(ctx, &ctx->style.window.background, nk_rgba(0,0,0,100));
+        nk_style_push_vec2(ctx, &ctx->style.window.padding, nk_vec2(0,0));
+        nk_style_push_style_item(ctx, &ctx->style.window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,100)));
+        nk_begin(ctx, "pm_bg", nk_rect(0, 0, 1200, 720), 0);
+        nk_end(ctx);
+        nk_style_pop_vec2(ctx);
+        nk_begin(ctx, "pause_menu", nk_rect(425, 260, 350, 200), 0);
+        nk_layout_row_dynamic(ctx, 32, 1);
+        if(nk_button_label(ctx, "Continue")){
+            is_paused = 0;
+        }
+        if(nk_button_label(ctx, "Quit")){
+            *gamestate = 3;
+        }
+        nk_end(ctx);
+        nk_style_pop_color(ctx);
+        nk_style_pop_style_item(ctx);
+        return;
+    }
 
     if(gfc_input_command_down("toggle_console")){
         show_console = !show_console;
     }
 
     if(show_console){
+        nk_style_push_color(ctx, &ctx->style.window.background, nk_rgba(0,0,0,0));
+        nk_style_push_style_item(ctx, &ctx->style.window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,0)));
         nk_begin(ctx, "Console", nk_rect(0, 0, 1200, 55), NK_WINDOW_NO_SCROLLBAR);
         nk_layout_row_begin(ctx, NK_DYNAMIC, 44, 2);
         nk_layout_row_push(ctx, 0.9f);
@@ -169,6 +210,8 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         }
         nk_layout_row_end(ctx);
         nk_end(ctx);
+        nk_style_pop_color(ctx);
+        nk_style_pop_style_item(ctx);
     }
 
     if(debug_menu_enabled){
@@ -226,6 +269,11 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
     if(*gamestate == 2){ //edit mode ui
         Entity* current = entity_manager_get_selected();
         if(current != NULL){
+            if(current != prev_selected){
+                NpcEditor.quest_loaded = 0;
+                prev_selected = current;
+            }
+
             if(nk_begin(ctx, "Entity Inspector", nk_rect(100, 200, 350, 400), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_TITLE|NK_WINDOW_MINIMIZABLE)){
                 nk_layout_row_dynamic(ctx, 32, 1);
 
@@ -358,10 +406,21 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
                     nk_layout_row_dynamic(ctx, 32, 1);
 
                     //TODO: Fix this
+                    if(props->has_quest && NpcEditor.quest_loaded == 0){
+                        SJson* quest = sj_object_get_value(props->npc_json, "quest");
+                        if(quest != NULL){
+                            gfc_line_cpy(NpcEditor.quest_id, sj_get_string_value(sj_object_get_value(quest, "id")));
+                            gfc_line_cpy(NpcEditor.quest_prompt, sj_get_string_value(sj_object_get_value(quest, "incomplete_text")));
+                            gfc_line_cpy(NpcEditor.quest_progress, sj_get_string_value(sj_object_get_value(quest, "progress_msg")));
+                        }
+                        NpcEditor.quest_loaded = 1;
+                    }
+
                     int has_quest = !props->has_quest;
                     nk_checkbox_label(ctx, "Has Quest", &has_quest);
                     props->has_quest = !has_quest;
                     if(props->has_quest){
+                        nk_layout_row_dynamic(ctx, 32, 2);
                         nk_label(ctx, "Quest ID", NK_TEXT_ALIGN_LEFT);
                         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, NpcEditor.quest_id, sizeof(TextLine), nk_filter_default);
 
@@ -370,6 +429,10 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 
                         nk_label(ctx, "In Progress Msg Text", NK_TEXT_ALIGN_LEFT);
                         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, NpcEditor.quest_progress, sizeof(TextLine), nk_filter_default);
+                        nk_layout_row_dynamic(ctx, 32, 1);                    
+                        if(nk_button_label(ctx, "Save Quest")){
+
+                        }
                     }
 
                     nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, resource_location, sizeof(TextLine), nk_filter_default);
@@ -385,6 +448,28 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
             }
             nk_end(ctx);
         }
+    }
+
+    if(*gamestate == 1){ // main menu
+        nk_style_push_color(ctx, &ctx->style.window.background, nk_rgba(0,0,0,0));
+        nk_style_push_vec2(ctx, &ctx->style.window.padding, nk_vec2(0,0));
+        nk_begin(ctx, "sm_bg", nk_rect(0,0,1200,720), NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_NO_INPUT);
+        nk_layout_row_static(ctx, 720, 1200, 1);
+        nk_image(ctx, nk_image_ptr(start_bg->texture));
+        nk_end(ctx);
+        nk_style_push_style_item(ctx, &ctx->style.window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,0)));
+        nk_begin(ctx, "start_menu", nk_rect(425, 260, 350, 200), 0);
+        nk_layout_row_dynamic(ctx, 32, 1);
+        if(nk_button_label(ctx, "Start")){
+            *gamestate = 0;
+        }
+        if(nk_button_label(ctx, "Quit")){
+            *gamestate = 3;
+        }
+        nk_end(ctx);
+        nk_style_pop_vec2(ctx);
+        nk_style_pop_color(ctx);
+        nk_style_pop_style_item(ctx);
     }
 }
 
