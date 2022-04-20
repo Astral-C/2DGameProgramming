@@ -2,9 +2,11 @@
 #include "camera.h"
 #include "simple_json.h"
 #include "simple_logger.h"
+#include "gf2d_graphics.h"
 #include "enemy.h"
 #include "npc.h"
 #include "audio.h"
+#include "menu.h"
 
 typedef struct {
     Uint8 editing;
@@ -16,6 +18,9 @@ typedef struct {
 } MapManager;
 
 static MapManager map_manager = {0};
+static int selected = -1;
+static int dragging = 0;
+static int px = 0, py = 0; 
 
 int current_map_width(){
     return map_manager.current_map.map_width;
@@ -26,11 +31,23 @@ int current_map_height(){
 }
 
 void map_cleanup(){
+    if(map_manager.current_map.foreground != NULL){
+        gf2d_sprite_free(map_manager.current_map.foreground);
+    }
+    if(map_manager.current_map.background != NULL){
+        gf2d_sprite_free(map_manager.current_map.background);
+    }
+    if(map_manager.current_map.decoration != NULL){
+        gf2d_sprite_free(map_manager.current_map.decoration);
+    }
     if(map_manager.current_map.collision != NULL){
-        free(map_manager.current_map.collision);
+        gfc_list_delete(map_manager.current_map.collision);
+        map_manager.current_map.collision = NULL;
     }
     if(map_manager.current_map.warps != NULL){
+        memset(map_manager.current_map.warps, 0, sizeof(Warp) * map_manager.current_map.warp_count);
         free(map_manager.current_map.warps);
+        map_manager.current_map.warps = NULL;
     }
 }
 
@@ -85,22 +102,25 @@ void map_load(char* map_def){
     }
 
     int collision_rect_count = sj_array_get_count(collision);
-    map_manager.current_map.rect_count = collision_rect_count;
 
-    if(map_manager.current_map.collision != NULL) free(map_manager.current_map.collision);
-    map_manager.current_map.collision = gfc_allocate_array(sizeof(Rect), map_manager.current_map.rect_count);
-    
+    if(map_manager.current_map.collision != NULL) gfc_list_delete(map_manager.current_map.collision);
+    //map_manager.current_map.collision = gfc_allocate_array(sizeof(Rect), map_manager.current_map.rect_count);
+    map_manager.current_map.collision = gfc_list_new();
+
+
     for (int cr = 0; cr < collision_rect_count; cr++){
+        Rect* r = malloc(sizeof(Rect));
         SJson* rect = sj_array_get_nth(collision, cr);
         int x, y, w, h;
         sj_get_integer_value(sj_array_get_nth(rect, 0), &x);
         sj_get_integer_value(sj_array_get_nth(rect, 1), &y);
         sj_get_integer_value(sj_array_get_nth(rect, 2), &w);
         sj_get_integer_value(sj_array_get_nth(rect, 3), &h);
-        map_manager.current_map.collision[cr].pos.x = (float)(x<<2);
-        map_manager.current_map.collision[cr].pos.y = (float)(y<<2);
-        map_manager.current_map.collision[cr].size.x = (float)(w<<2);
-        map_manager.current_map.collision[cr].size.y = (float)(h<<2);
+        r->pos.x = (float)(x<<2);
+        r->pos.y = (float)(y<<2);
+        r->size.x = (float)(w<<2);
+        r->size.y = (float)(h<<2);
+        gfc_list_append(map_manager.current_map.collision, r);
     }
 
     /*
@@ -239,6 +259,8 @@ void map_load(char* map_def){
         }
     }
 
+    map_editor_notify_load(map_bg, map_fg, map_deco);
+
     map_manager.current_map.map_width = map_manager.current_map.background->frame_w * 4;
     map_manager.current_map.map_height = map_manager.current_map.background->frame_h * 4;
 
@@ -247,15 +269,54 @@ void map_load(char* map_def){
 }
 
 void map_manager_update(){
-    if(map_manager.should_warp == 1){
-        entity_manager_clear(entity_manager_get_player());
-        ui_manager_clear_ephemeral();
-        map_load(map_manager.warp_target.load_map);
-        if(map_manager.warp_target.dest_warp != -1){
-            entity_manager_get_player()->position = map_manager.current_map.warps[map_manager.warp_target.dest_warp].area.pos;
-            map_manager.current_map.player_spawn = map_manager.current_map.warps[map_manager.warp_target.dest_warp].area.pos;
+    int i, x, y;
+    Uint32 state;
+    Vector2D mouse_pos;
+    if(map_manager.editing == 0){
+        if(map_manager.should_warp == 1){
+            entity_manager_clear(entity_manager_get_player());
+            ui_manager_clear_ephemeral();
+            map_load(map_manager.warp_target.load_map);
+            map_editor_notify_selected(NULL);
+            selected = -1;
+            if(map_manager.warp_target.dest_warp != -1){
+                entity_manager_get_player()->position = map_manager.current_map.warps[map_manager.warp_target.dest_warp].area.pos;
+                map_manager.current_map.player_spawn = map_manager.current_map.warps[map_manager.warp_target.dest_warp].area.pos;
+            }
+            map_manager.should_warp = 0;
         }
-        map_manager.should_warp = 0;
+
+    } else {
+        state = SDL_GetMouseState(&x, &y);
+        mouse_pos = vector2d(x, y);
+        vector2d_add(mouse_pos, get_camera_pos(), mouse_pos);
+
+        if((state & SDL_BUTTON_RMASK) != 0){
+            map_editor_notify_selected(NULL);
+            selected = -1;
+            dragging = 0;
+        }
+
+        if((state & SDL_BUTTON_LMASK) != 0 && dragging == 0){
+            for(i=0; i<gfc_list_get_count(map_manager.current_map.collision); i++){
+                Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+                if(rectp_collidep(mouse_pos, r)){
+                    map_editor_notify_selected(r);
+                    selected = i;
+                    dragging = 1;
+                    px = x;
+                    py = y;
+                }
+            }
+        } else if ((state & SDL_BUTTON_LMASK) != 0 && dragging == 1){
+            Rect* r = gfc_list_get_nth(map_manager.current_map.collision, selected);
+            r->pos.x += x - px;
+            r->pos.y += y - py;
+            px = x;
+            py = y;
+        } else if ((state & SDL_BUTTON_LMASK) == 0 && dragging == 1){
+            dragging = 0;
+        }
     }
 }
 
@@ -288,6 +349,38 @@ void map_draw_bg(Map* m){
 
 void map_manager_draw_fg(){
     map_draw_fg(&map_manager.current_map);
+    
+    Vector2D cam = get_camera_pos();
+    if(map_manager.editing == 1){
+        for (size_t i = 0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
+            if(i == selected){
+                SDL_SetRenderDrawColor(gf2d_graphics_get_renderer(), 0xFF, 0xFF, 0xFF, 0xFF);
+            } else {
+                SDL_SetRenderDrawColor(gf2d_graphics_get_renderer(), 0xFF, 0x00, 0xFF, 0xFF);
+            }
+            SDL_FRect drect;
+            Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+            drect.x = r->pos.x - cam.x;
+            drect.y = r->pos.y - cam.y;
+            drect.w = r->size.x;
+            drect.h = r->size.y;
+            SDL_RenderDrawRectF(gf2d_graphics_get_renderer(), &drect);
+        }
+    }
+}
+
+void map_manager_notify_editing(Uint8 is_editing){
+    map_manager.editing = is_editing;
+}
+
+void map_editor_notify_delete(Rect* to_delete){
+    gfc_list_delete_nth(map_manager.current_map.collision, selected);
+}
+
+void map_editor_notify_add(Rect to_add){
+    Rect* r = malloc(sizeof(Rect));
+    memcpy(r, &to_add, sizeof(Rect));
+    gfc_list_append(map_manager.current_map.collision, r);
 }
 
 void map_manager_draw_bg(){
@@ -295,8 +388,9 @@ void map_manager_draw_bg(){
 }
 
 Uint8 collide_worldp(Vector2D p){
-    for (int i = 0; i < map_manager.current_map.rect_count; i++){
-        if(rect_collidep(p, map_manager.current_map.collision[i])){
+    for (int i = 0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
+        Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+        if(rectp_collidep(p, r)){
             return 1;
         }
     }
@@ -304,6 +398,7 @@ Uint8 collide_worldp(Vector2D p){
 }
 
 Uint8 ent_collide_world(Entity* ent){
+    Vector2D floor_l, floor_r;
     Rect r1 = ent->hurtbox;
     vector2d_add(r1.pos, ent->hurtbox.pos, ent->velocity);
     Uint8 col_data = 0;
@@ -318,16 +413,30 @@ Uint8 ent_collide_world(Entity* ent){
         return COL_FLOOR;
     }
 
-    for (int i = 0; i < map_manager.current_map.rect_count; i++){
-        Rect r2 = map_manager.current_map.collision[i];
-        Uint8 col_xl = r1.pos.x <= r2.pos.x + r2.size.x;
-        Uint8 col_xr = r1.pos.x + r1.size.x >= r2.pos.x;
-        Uint8 col_yu = r1.pos.y <= r2.pos.y + r2.size.y;
-        Uint8 col_yd = r1.pos.y + r1.size.y >= r2.pos.y;
+    for (int i = 0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
+        Rect* r2 = gfc_list_get_nth(map_manager.current_map.collision, i);
+        Uint8 col_xl = r1.pos.x <= r2->pos.x + r2->size.x;
+        Uint8 col_xr = r1.pos.x + r1.size.x >= r2->pos.x;
+
+        Uint8 col_yu = r1.pos.y <= r2->pos.y + r2->size.y;
+        Uint8 col_yd = r1.pos.y + r1.size.y >= r2->pos.y;
+
+        Uint8 col_fyu = r1.pos.y + (r1.size.y * 0.2) < r2->pos.y + r2->size.y;
+        Uint8 col_fyd = r1.pos.y + (r1.size.y * 0.8) > r2->pos.y;
+
+        if(col_xl && col_xr && col_fyd && col_fyu){
+            if(ent->velocity.x > 0){
+                ent->position.x = r2->pos.x - r1.size.x - 3;
+            } else if(ent->velocity.x < 0) {
+                ent->position.x = r2->pos.x + r2->size.x + 3;
+            }
+            ent->velocity.x = 0;
+        }
+
         if(col_xl && col_xr && col_yd && col_yu){
             if(col_yd && ent->velocity.y >= 0){
                 ent->velocity.y = 0;
-                ent->position.y = r2.pos.y - r1.size.y;
+                if(!col_fyd) ent->position.y = r2->pos.y - r1.size.y;
                 col_data |= COL_FLOOR;
             }
             if(col_yu && ent->velocity.y < 0) ent->velocity.y = 0;

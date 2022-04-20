@@ -25,7 +25,8 @@ typedef struct {
     Sprite* foreground;
  
     Uint32 rect_count;
-    Rect* collision;
+    //Rect* collision;
+    List* collision;
 
     Uint32 warp_count;
     Warp* warps;
@@ -41,7 +42,10 @@ typedef struct {
 void map_load(char* name);
 void map_cleanup();
 
-void map_manager_audio_update();
+void map_manager_notify_editing(Uint8 is_editing);
+void map_editor_notify_delete(Rect* to_delete);
+void map_editor_notify_add(Rect to_add);
+void map_editor_notify_can_select(int select);
 
 Uint8 collide_worldp(Vector2D p);
 Uint8 ent_collide_world(Entity* ent);

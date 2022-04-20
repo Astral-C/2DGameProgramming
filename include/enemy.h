@@ -10,7 +10,8 @@ typedef enum {
     ENEMY_GOLEM,
     ENEMY_MUSHROOM,
     ENEMY_MAGICIAN,
-    ENEMY_SPAWNER
+    ENEMY_SPAWNER,
+    ENEMY_TYPE_COUNT
 } EnemyType;
 
 typedef enum {

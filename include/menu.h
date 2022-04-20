@@ -16,6 +16,10 @@ void menu_update();
 struct nk_context* menu_get_nk_context();
 void menu_draw();
 
+//map editor functions
+void map_editor_notify_selected(Rect* rect);
+void map_editor_notify_load(char* bg, char* fg, char* deco);
+
 int game_paused();
 
 #endif

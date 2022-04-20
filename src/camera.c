@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "gfc_input.h"
 #include "gf2d_graphics.h"
 #include "simple_logger.h"
 #include "map.h"
@@ -29,28 +30,38 @@ Vector2D* get_camera_zoom(){
 }
 
 void update_camera(){
-    if(cam.target == NULL) return;
+    if(cam.target == NULL){
+        if(gfc_input_command_down("left")){
+            cam.position.x += -5;
+        } else if (gfc_input_command_down("right")){
+            cam.position.x += 5;
+        } else if(gfc_input_command_down("stomp")){
+            cam.position.y += 5;
+        } else if(gfc_input_command_down("jump")){
+            cam.position.y -= 5;
+        }
+    } else {
 
-    //TODO: add a speed modifier to change how the camera movement scales?
-    if((cam.target->position.x) < (cam.position.x + cam.move_border_x) && cam.position.x > 0){ //todo: restrict to map width
-        cam.accel.x = ((cam.target->position.x) - (cam.position.x + cam.move_border_x)) * cam_speed;
+        //TODO: add a speed modifier to change how the camera movement scales?
+        if((cam.target->position.x) < (cam.position.x + cam.move_border_x) && cam.position.x > 0){ //todo: restrict to map width
+            cam.accel.x = ((cam.target->position.x) - (cam.position.x + cam.move_border_x)) * cam_speed;
+        }
+
+        if((cam.target->position.x) > (cam.position.x + cam.screen_rect.w) - cam.move_border_x){
+            cam.accel.x = ((cam.target->position.x) - ((cam.position.x + cam.screen_rect.w) - cam.move_border_x)) * cam_speed;
+        }
+
+        if(abs(cam.target->position.y - cam.position.y) < cam.move_border_y && cam.position.y > 0){
+            cam.accel.y = ((cam.target->position.y) - (cam.position.y + cam.move_border_y)) * cam_speed;
+        }
+
+        if(abs(cam.target->position.y - cam.position.y) > cam.screen_rect.h - cam.move_border_y){
+            cam.accel.y = ((cam.target->position.y) - ((cam.position.y + cam.screen_rect.h) - cam.move_border_y)) * cam_speed;
+        }
+
+
+        vector2d_add(cam.position, cam.position, cam.accel);
     }
-    
-    if((cam.target->position.x) > (cam.position.x + cam.screen_rect.w) - cam.move_border_x){
-        cam.accel.x = ((cam.target->position.x) - ((cam.position.x + cam.screen_rect.w) - cam.move_border_x)) * cam_speed;
-    }
-
-    if(abs(cam.target->position.y - cam.position.y) < cam.move_border_y && cam.position.y > 0){
-        cam.accel.y = ((cam.target->position.y) - (cam.position.y + cam.move_border_y)) * cam_speed;
-    }
-
-    if(abs(cam.target->position.y - cam.position.y) > cam.screen_rect.h - cam.move_border_y){
-        cam.accel.y = ((cam.target->position.y) - ((cam.position.y + cam.screen_rect.h) - cam.move_border_y)) * cam_speed;
-    }
-    
-
-    vector2d_add(cam.position, cam.position, cam.accel);
-
     if(cam.position.x < 0){
         cam.position.x = 0;
         cam.accel.x = 0;
@@ -65,7 +76,7 @@ void update_camera(){
         cam.accel.y = 0;
     }
     if((cam.position.y + 700) > current_map_height()){
-        cam.position.y = current_map_width() - 700;
+        cam.position.y = current_map_height() - 700;
         cam.accel.y = 0;
     }
 

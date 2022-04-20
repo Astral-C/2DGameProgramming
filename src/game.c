@@ -69,6 +69,7 @@ int main(int argc, char * argv[])
     set_camera_target(p);
 
     map_load("levels/test_map.json");
+    audio_pause_mod();
 
     quest_manager_init();
 

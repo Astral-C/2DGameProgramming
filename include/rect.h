@@ -14,6 +14,14 @@ typedef struct RECT_S {
 } Rect;
 
 #define rect_collidep(p, r) (p.x > r.pos.x) && (p.y > r.pos.y) && (p.y < (r.pos.y + r.size.y)) && (p.x < (r.pos.x + r.size.x))
+
+#define rectp_collidep(p, r) (p.x > r->pos.x) && (p.y > r->pos.y) && (p.y < (r->pos.y + r->size.y)) && (p.x < (r->pos.x + r->size.x))
+
+#define rectp_collider(r1,r2)(r1->pos.x + r1->size.x > r2->pos.x) \
+                          && (r1->pos.x < r2->pos.x + r2->size.x) \
+                          && (r1->pos.y + r1->size.y > r2->pos.y) \
+                          && (r1->pos.y < r2->pos.y + r2->size.y)
+
 #define rect_collider(r1,r2) (r1.pos.x + r1.size.x > r2.pos.x) \
                           && (r1.pos.x < r2.pos.x + r2.size.x) \
                           && (r1.pos.y + r1.size.y > r2.pos.y) \

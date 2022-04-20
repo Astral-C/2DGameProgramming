@@ -19,7 +19,7 @@ void npc_think(Entity* self){
 
     if(props->has_quest){
         quest = sj_object_get_value(props->npc_json, "quest");
-        quest_name = sj_get_string_value(sj_object_get_value(quest, "name"));
+        quest_name = sj_get_string_value(sj_object_get_value(quest, "id"));
     }
 
     if(!interaction_manager.interacting && interaction_manager.requested_interaction && rect_collider(self->hurtbox, p->hurtbox)){
@@ -58,17 +58,18 @@ void npc_think(Entity* self){
         }
     } else if(!props->is_shop && props->has_quest && quest_manager_check_completion(quest_name) == 0xFF) {
         EventType type;
-        int tag;
+        int tag, complete;
 
         type = sj_get_integer_value(quest, "type");
         tag = sj_get_integer_value(quest, "type");
+        complete = sj_get_integer_value(quest, "complete");
 
         if(gfc_input_command_released("switch_weapon")){
             interaction_manager.interacting = NULL;
             return;
         } else if (gfc_input_command_released("fire_weapon")) {
             if(quest_manager_check_completion(quest_name) == 0xFF){
-                add_quest(quest_name, type, tag, 5);
+                add_quest(quest_name, type, tag, complete);
                 activate_quest(quest_name);
             }
             interaction_manager.interacting = NULL;
@@ -187,7 +188,7 @@ void draw_shop_ui(){
             draw_item_pos.x += 16;
             draw_item_pos.y -= 16;
             Vector2D scale = vector2d(0.25,0.25);
-            gf2d_sprite_draw(inventory_manager_consumables_img(), draw_item_pos, &scale, NULL, NULL, NULL, NULL, 0);
+            gf2d_sprite_draw(inventory_manager_consumables_img(), draw_item_pos, &scale, NULL, NULL, NULL, NULL, props->sell_type);
         }
     }
 }

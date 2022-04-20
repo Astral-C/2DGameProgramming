@@ -8,6 +8,8 @@
 #include "inventory.h"
 #include "npc.h"
 #include "audio.h"
+#include "camera.h"
+#include "map.h"
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -49,23 +51,56 @@ static const char* enemy_types[] = {
     "Magician"
 };
 
+static const char* quest_types[] = {
+    "Kill Enemies", 
+    "Enable Flag"
+};
+
+static const char* consumable_types[] = {
+    "Health",
+    "Speed",
+    "Stamina",
+    "Invisibility",
+    "Time Freeze"
+};
+
 static struct {
     int selected_page;
     TextLine page_text;
     TextLine quest_prompt;
     TextLine quest_progress;
     TextLine quest_id;
+    int quest_type;
+    int quest_tag;
+    int completion_progress;
     int quest_loaded;
 } NpcEditor = {0};
 
 ConfigData* EnemyConfigs;
 
 static struct {
+    TextLine bg_path;
+    TextLine fg_path;
+    TextLine deco_path;
+
     Rect* selected;
+    Rect new;
 } MapEditor = {0};
 
-void set_style_transparent(){
-    ctx->style.window.background = nk_rgba(0, 0, 0, 0);
+void map_editor_notify_selected(Rect* rect){
+    MapEditor.selected = rect;
+}
+
+void map_editor_notify_load(char* bg, char* fg, char* deco){
+    if(bg != NULL){
+        gfc_line_cpy(MapEditor.bg_path, bg);
+    }
+    if(fg != NULL){
+        gfc_line_cpy(MapEditor.fg_path, fg);
+    }
+    if(deco != NULL){
+        gfc_line_cpy(MapEditor.deco_path, deco);
+    }
 }
 
 void menu_input_begin(){
@@ -167,8 +202,9 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
     if(ctx == NULL) return;
     
 
-    if(gfc_input_command_released("pause")){
+    if(gfc_input_command_released("pause") && *gamestate != 1){
         is_paused = 1;
+        audio_pause_mod();
     }
 
     if(is_paused){
@@ -178,15 +214,38 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         nk_begin(ctx, "pm_bg", nk_rect(0, 0, 1200, 720), 0);
         nk_end(ctx);
         nk_style_pop_vec2(ctx);
+        
+        nk_style_push_vec2(ctx, &ctx->style.window.padding, nk_vec2(50,25));
         nk_begin(ctx, "pause_menu", nk_rect(425, 260, 350, 200), 0);
-        nk_layout_row_dynamic(ctx, 32, 1);
+        nk_layout_row_static(ctx, 32, 240, 1);
         if(nk_button_label(ctx, "Continue")){
             is_paused = 0;
+            map_editor_enabled = 0;
+            *gamestate = 0;
+            map_manager_notify_editing(0);
+            set_camera_target(entity_manager_get_player());
+            audio_play_mod();
         }
+        if(nk_button_label(ctx, "Save")){
+            //SJson* save = sj_new();
+            //sj_object_insert(save, "map", MapEd);
+            //sj_save(save, "save.json");   
+        }
+        nk_layout_row_static(ctx, 32, 240, 1);
+        if(nk_button_label(ctx, "Edit Map")){
+            *gamestate = 2;
+            map_editor_enabled = 1;
+            is_paused = 0;
+            map_manager_notify_editing(1);
+            set_camera_target(NULL);
+        }
+        nk_layout_row_static(ctx, 32, 240, 1);
         if(nk_button_label(ctx, "Quit")){
             *gamestate = 3;
         }
         nk_end(ctx);
+
+        nk_style_pop_vec2(ctx);
         nk_style_pop_color(ctx);
         nk_style_pop_style_item(ctx);
         return;
@@ -236,20 +295,57 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 
             if(*gamestate == 2){
                 if(nk_button_label(ctx, "Add Collision Rect")){
-                    
+                    map_editor_notify_add(MapEditor.new);
                 }
 
                 if(nk_button_label(ctx, "Delete Collision Rect")){
-                     
+                    map_editor_notify_delete(MapEditor.selected);
                 }
+
+                if(MapEditor.selected != NULL){
+                    nk_property_float(ctx, "x", 0, &MapEditor.selected->pos.x, current_map_width(), 16, 16);
+                    nk_property_float(ctx, "y", 0, &MapEditor.selected->pos.y, current_map_height(), 16, 16);
+                    nk_property_float(ctx, "w", 0, &MapEditor.selected->size.x, current_map_width(), 16, 16);
+                    nk_property_float(ctx, "h", 0, &MapEditor.selected->size.y, current_map_height(), 16, 16);
+                } else {
+                    nk_property_float(ctx, "x", 0, &MapEditor.new.pos.x, current_map_width(), 16, 16);
+                    nk_property_float(ctx, "y", 0, &MapEditor.new.pos.y, current_map_height(), 16, 16);
+                    nk_property_float(ctx, "w", 0, &MapEditor.new.size.x, current_map_width(), 16, 16);
+                    nk_property_float(ctx, "h", 0, &MapEditor.new.size.y, current_map_height(), 16, 16);
+                }
+
             }
 
-            if(nk_button_label(ctx, "Edit Map")){
-                if(*gamestate == 0 && *gamestate != 2){
-                    *gamestate = 2;
-                } else {
-                    *gamestate = 0;
-                }
+            nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
+            
+            nk_layout_row_push(ctx, 0.2);
+            nk_label(ctx, "BG Path", NK_TEXT_ALIGN_CENTERED);
+            nk_layout_row_push(ctx, 0.8);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.bg_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_end(ctx);
+            
+            nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
+            nk_layout_row_push(ctx, 0.2);
+            nk_label(ctx, "FG Path", NK_TEXT_ALIGN_CENTERED);
+            nk_layout_row_push(ctx, 0.8);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.fg_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_end(ctx);
+            
+            nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
+            nk_layout_row_push(ctx, 0.2);
+            nk_label(ctx, "Deco Path", NK_TEXT_ALIGN_CENTERED);
+            nk_layout_row_push(ctx, 0.8);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.deco_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_end(ctx);
+
+            nk_layout_row_dynamic(ctx, 32, 1);
+            if(nk_button_label(ctx, "Deselect")){
+                map_editor_notify_selected(NULL);
+            }
+
+            if(nk_button_label(ctx, "New Map")){
+                map_editor_notify_selected(NULL);
+                map_cleanup();
             }
 
             if(nk_button_label(ctx, "Save Map")){
@@ -412,6 +508,9 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
                             gfc_line_cpy(NpcEditor.quest_id, sj_get_string_value(sj_object_get_value(quest, "id")));
                             gfc_line_cpy(NpcEditor.quest_prompt, sj_get_string_value(sj_object_get_value(quest, "incomplete_text")));
                             gfc_line_cpy(NpcEditor.quest_progress, sj_get_string_value(sj_object_get_value(quest, "progress_msg")));
+                            sj_get_integer_value(sj_object_get_value(quest, "type"), &NpcEditor.quest_type);
+                            sj_get_integer_value(sj_object_get_value(quest, "tag"), &NpcEditor.quest_tag);
+                            sj_get_integer_value(sj_object_get_value(quest, "complete"), &NpcEditor.completion_progress);
                         }
                         NpcEditor.quest_loaded = 1;
                     }
@@ -429,14 +528,57 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 
                         nk_label(ctx, "In Progress Msg Text", NK_TEXT_ALIGN_LEFT);
                         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, NpcEditor.quest_progress, sizeof(TextLine), nk_filter_default);
-                        nk_layout_row_dynamic(ctx, 32, 1);                    
-                        if(nk_button_label(ctx, "Save Quest")){
+                        nk_layout_row_dynamic(ctx, 32, 1);
 
+                        int prev_type = NpcEditor.quest_type;
+                        NpcEditor.quest_type = nk_combo(ctx, quest_types, 2, NpcEditor.quest_type, 20, nk_vec2(200,150));
+
+                        if(prev_type != NpcEditor.quest_type){
+                            NpcEditor.quest_tag = 0;
                         }
+
+                        if(NpcEditor.quest_type == 0){
+                            NpcEditor.quest_tag = nk_combo(ctx, enemy_types, ENEMY_TYPE_COUNT-1, NpcEditor.quest_tag, 20, nk_vec2(200,150));
+                            nk_property_int(ctx, "Amount", 1, &NpcEditor.completion_progress, 1000, 1, 1);
+                        } else {
+                            nk_property_int(ctx, "Flag", 1, &NpcEditor.quest_tag, 255, 1, 1);
+                        }
+                                            
+                        if(nk_button_label(ctx, "Save Quest")){
+                            SJson* nquest = sj_object_new();
+                            sj_object_insert(nquest, "id", sj_new_str(NpcEditor.quest_id));
+                            sj_object_insert(nquest, "incomplete_text", sj_new_str(NpcEditor.quest_prompt));
+                            sj_object_insert(nquest, "progress_msg", sj_new_str(NpcEditor.quest_progress));
+                            sj_object_insert(nquest, "type", sj_new_int(NpcEditor.quest_type));
+                            sj_object_insert(nquest, "tag", sj_new_int(NpcEditor.quest_tag));
+                            sj_object_insert(nquest, "complete", sj_new_int(NpcEditor.completion_progress));
+
+                            sj_object_delete_key(props->npc_json, "quest");
+                            sj_object_insert(props->npc_json, "quest", nquest);
+                        }
+                    }
+
+                    int is_shop = !props->is_shop;
+                    nk_checkbox_label(ctx, "Is Shop", &is_shop);
+                    props->is_shop = !is_shop;
+
+                    if(props->is_shop){
+                        props->sell_type = nk_combo(ctx, consumable_types, CONSUMABLE_COUNT, props->sell_type, 20, nk_vec2(200,150));
+                        nk_property_int(ctx, "Price", 1, &props->sell_price, 255, 1, 1);
                     }
 
                     nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, resource_location, sizeof(TextLine), nk_filter_default);
                     if(nk_button_label(ctx, "Save Npc")){
+                        sj_object_delete_key(props->npc_json, "is_shop");
+                        sj_object_insert(props->npc_json, "is_shop", sj_new_int(props->is_shop));
+                        if(props->is_shop){
+                            sj_object_delete_key(props->npc_json, "item");
+                            SJson* item = sj_array_new();
+                            sj_array_append(item, sj_new_int(props->sell_type));
+                            sj_array_append(item, sj_new_int(props->sell_price));
+                            sj_object_insert(props->npc_json, "item", item);
+                        }
+
                         sj_save(props->npc_json, resource_location);
                     }
                     break;
@@ -462,6 +604,7 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         nk_layout_row_dynamic(ctx, 32, 1);
         if(nk_button_label(ctx, "Start")){
             *gamestate = 0;
+            audio_play_mod();
         }
         if(nk_button_label(ctx, "Quit")){
             *gamestate = 3;

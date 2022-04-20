@@ -22,7 +22,6 @@ void entity_manager_init(Uint32 max_entities){
         slog("Cannot allocate memory for 0 entities");
         return;
     }
-
     if(entity_manager.entity_list != NULL){
         slog("Entity manager already intitialized");
         return;
