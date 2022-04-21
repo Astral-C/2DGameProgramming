@@ -33,14 +33,14 @@ void quest_manager_notify(EventType type, int tag){
         switch (type)
         {
         case ET_EnableFlag:
-            quests.active_quest->is_complete = 1;
+            if(quests.active_quest->completion_progress == tag) quests.active_quest->is_complete = 1;
             break;
         
         case ET_KillEnemy:
-            slog("Updating Quests...");
+            //slog("Updating Quests...");
             if(tag == quests.active_quest->tag){
                 quests.active_quest->progress++;
-                slog("Killed enemy with correct tag, progress is %d", quests.active_quest->progress);
+                //slog("Killed enemy with correct tag, progress is %d", quests.active_quest->progress);
                 if(quests.active_quest->progress >= quests.active_quest->completion_progress){
                     quests.active_quest->is_complete = 1;
                 }
@@ -65,4 +65,8 @@ Uint8 quest_manager_check_completion(char* quest_name){
 
 QuestManager* get_quest_manager(){
     return &quests;
+}
+
+void quest_manager_load(SJson* quests){
+    
 }

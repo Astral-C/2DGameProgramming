@@ -75,8 +75,8 @@ void update_camera(){
         cam.position.y = 0;
         cam.accel.y = 0;
     }
-    if((cam.position.y + 700) > current_map_height()){
-        cam.position.y = current_map_height() - 700;
+    if((cam.position.y + 720) > current_map_height()){
+        cam.position.y = current_map_height() - 720;
         cam.accel.y = 0;
     }
 

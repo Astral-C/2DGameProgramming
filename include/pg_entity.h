@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include "rect.h"
 #include "gf2d_sprite.h"
+#include "simple_json.h"
 
 typedef enum {
     ENT_GENERAL,
@@ -60,7 +61,7 @@ void entity_manager_think_all();
  * @brief free all active entities
  * 
 */
-void entity_manager_clear();
+void entity_manager_clear(Entity* filter);
 
 /**
  * @brief get a new empty entity
@@ -122,5 +123,7 @@ void entity_manager_toggle_draw_debug();
 void entity_manager_set_draw_debug(Uint8 draw);
 
 void entity_manager_kill_enemies();
+
+void entity_manager_serialize(SJson* map);
 
 #endif

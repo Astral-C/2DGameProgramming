@@ -17,7 +17,7 @@ void axe_think(Entity *self){
 
    Entity* hit = get_colliding(self);
 
-    if(hit != NULL && hit != self->owner){
+    if(hit != NULL && hit != self->owner && hit->type != ENT_WEAPON){
         hit->health -= 20;
         entity_free(self);
         return;

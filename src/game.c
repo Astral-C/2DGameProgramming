@@ -62,7 +62,7 @@ int main(int argc, char * argv[])
         
     init_camera(350.0f, 200.0f);
 
-    //SDL_ShowCursor(SDL_DISABLE);
+    SDL_ShowCursor(SDL_ENABLE);
     
     Entity* p = player_new();
     entity_manager_reset_player();
@@ -72,7 +72,6 @@ int main(int argc, char * argv[])
     audio_pause_mod();
 
     quest_manager_init();
-
 
     ui_manager_add_image(vector2d(16,16), "images/health.png", 24, 16, 1);
     init_menu();

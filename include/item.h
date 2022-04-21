@@ -11,5 +11,6 @@ typedef struct {
 } PickupProps;
 
 Entity* spawn_potion(ConsumableType type);
+Entity* spawn_craft_item(CraftType type);
 
 #endif

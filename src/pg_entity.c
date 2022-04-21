@@ -2,6 +2,7 @@
 #include "pg_entity.h"
 #include "camera.h"
 #include "gf2d_graphics.h"
+#include "enemy.h"
 
 #define DRAW_DEBUG false
 
@@ -236,4 +237,55 @@ void entity_manager_kill_enemies(){
             entity_manager.entity_list[i].health = 0;
         }
     }
+}
+
+void entity_manager_serialize(SJson* map){
+    int i, type;
+    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy, *spawner;
+    
+    enemies = sj_array_new();
+    spawners = sj_array_new();
+    player_spawn = sj_array_new();
+
+    for(i=0;i<entity_manager.max_entities;i++){
+        if(entity_manager.entity_list[i]._inuse){ //add collision masks at some point? idfk at this point
+            Entity* ent = &entity_manager.entity_list[i];
+            switch (ent->type)
+            {
+            case ENT_ENEMY:
+                enemy = sj_object_new();
+                ent_spawn = sj_array_new();
+                type = *((EnemyType*)ent->data);
+                if(type == ENEMY_SPAWNER){
+                    EnemySpawnerProps* props = (EnemySpawnerProps*)ent->data;
+                    sj_object_insert(enemy, "spawn_type", sj_new_int(props->spawn_type));
+                    sj_object_insert(enemy, "spawn_amount", sj_new_int(props->spawn_amount));
+                    sj_object_insert(enemy, "spawn_interval", sj_new_int(props->spawn_interval));
+                    sj_object_insert(enemy, "max_entities", sj_new_int(props->max_entities));
+                    sj_array_append(ent_spawn, sj_new_int(((int)ent->position.x) >> 2));
+                    sj_array_append(ent_spawn, sj_new_int(((int)ent->position.y) >> 2));                
+                    sj_object_insert(enemy, "position", ent_spawn);
+                    sj_array_append(spawners, enemy);
+                } else {
+                    sj_object_insert(enemy, "type", sj_new_int(type));
+                    sj_array_append(ent_spawn, sj_new_int(((int)ent->position.x) >> 2));
+                    sj_array_append(ent_spawn, sj_new_int(((int)ent->position.y) >> 2));                
+                    sj_object_insert(enemy, "position", ent_spawn);
+                    sj_array_append(enemies, enemy);
+                }
+                break;
+            
+            case ENT_PLAYER:
+                sj_array_append(player_spawn, sj_new_int(((int)ent->position.x) >> 2));
+                sj_array_append(player_spawn, sj_new_int(((int)ent->position.y) >> 2));
+                sj_object_insert(map, "player_spawn", player_spawn);
+                break;
+
+            default:
+                break;
+            }
+        }
+    }
+    sj_object_insert(map, "spawners", spawners);
+    sj_object_insert(map, "enemies", enemies);
 }

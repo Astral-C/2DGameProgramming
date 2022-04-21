@@ -114,6 +114,7 @@ void tracker_mod_tick(ModTracker* tracker){
 			//printf("row update: tick %u\n", tracker->_current_ticks);
 			
 			for (ch = 0; ch < 4; ch++){
+				if(tracker->module.patterns == NULL) continue;
 				note = swap32(tracker->module.patterns[tracker->module.song_positions[tracker->current_pattern]].rows[tracker->current_row][ch]);
 				instrument = (note & 0xF0000000) >> 24 | (note & 0x0000F000) >> 12;	
 				period = (note & 0x0FFF0000) >> 16;

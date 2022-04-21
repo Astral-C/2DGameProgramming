@@ -1,4 +1,1 @@
-{
-    "health" : 10,
-    "move_timer" : 10
-}
+{"health":"10","move_timer":"255"}

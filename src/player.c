@@ -9,6 +9,7 @@
 #include "inventory.h"
 #include "pg_ui.h"
 #include "npc.h"
+#include "audio.h"
 #include <math.h>
 
 typedef enum {
@@ -40,6 +41,8 @@ typedef struct {
 
     PlayerState state; // 11
     int direction; // 15
+    int fight_timer;
+    int is_fighting;
     float stamina; // 19
     Weapon active_weapon; // 23
 } PlayerData;
@@ -215,7 +218,7 @@ void player_think(Entity *self){
         if(gfc_input_command_released("fire_weapon") && pd->stamina > 0){
             int dir = (pd->direction ? -1 : 1);
             Entity* w = NULL;
-            
+            pd->fight_timer -= 30;
             switch (pd->active_weapon)
             {
             case BOMB:
@@ -265,6 +268,7 @@ void player_think(Entity *self){
             }
         }
     }
+
     pd->on_floor = ent_collide_world(self) & COL_FLOOR;
 
     if(wallet.money_dirty){
@@ -284,6 +288,17 @@ void player_think(Entity *self){
         self->position = map_get_player_spawn();
         self->health = 100;
         inventory_clear();
+    }
+
+    if(pd->fight_timer < 0 && pd->is_fighting == 0){
+        audio_open_mod("audio/neon_techno.mod");
+        audio_play_mod();
+        pd->is_fighting = 1;
+    } else if(pd->fight_timer < 200){
+        pd->fight_timer += 1;
+    } else if(pd->is_fighting && pd->fight_timer == 200){
+        pd->is_fighting = 0;
+        map_manager_play_bgm();
     }
 
 }
@@ -310,10 +325,36 @@ Entity* player_new(){
     pd->active_weapon = KNIFE;
     pd->direction = 1;
     pd->stamina = 100;
+    pd->fight_timer = 200;
+    pd->is_fighting = 0;
     plyr->hurtbox = (Rect){{plyr->position.x, plyr->position.y}, {64, 64}};
 
     pd->on_floor = 0;
 
     plyr->velocity.y = 1;
     return plyr;
+}
+
+void player_load(Entity* player, Vector2D position, Uint8 health, float stamina, int money){
+    wallet.money = money;
+    wallet.money_dirty = 1;
+
+    player->health = health;
+    player->position = position;
+    PlayerData* data = (PlayerData*)player->data;
+    data->stamina = stamina;
+}
+
+void player_save(SJson* save){
+    SJson* player_pos = sj_array_new();
+
+    Entity* player_ent = entity_manager_get_player();
+    PlayerData* data = (PlayerData*)player_ent->data;
+    sj_object_insert(save, "health", sj_new_int(player_ent->health));
+    sj_object_insert(save, "stamina", sj_new_float(data->stamina));
+    sj_object_insert(save, "money", sj_new_int(wallet.money));
+
+    sj_array_append(player_pos, sj_new_float(player_ent->position.x));
+    sj_array_append(player_pos, sj_new_float(player_ent->position.y));
+    sj_object_insert(save, "position", player_pos);
 }

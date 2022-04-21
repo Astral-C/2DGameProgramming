@@ -2,7 +2,7 @@
     "name" : "town_map",
     "map_fg" : "images/town_fg.png",
     "map_bg" : "images/town_bg.png",
-    "music_ambient" : "audio/musix-retrospective.mod",
+    "music_ambient" : "audio/musix-pleasant.mod",
     "is_town" : true,
     "collision" : [
         [0,224,272,16],

@@ -82,16 +82,24 @@ static struct {
     TextLine bg_path;
     TextLine fg_path;
     TextLine deco_path;
+    TextLine map_path;
 
+    Warp* selected_warp;
     Rect* selected;
-    Rect new;
+
+    Rect new_collision;
+    Warp new_warp;
 } MapEditor = {0};
 
 void map_editor_notify_selected(Rect* rect){
     MapEditor.selected = rect;
 }
 
-void map_editor_notify_load(char* bg, char* fg, char* deco){
+void map_editor_notify_selected_warp(Warp* warp){
+    MapEditor.selected_warp = warp;
+}
+
+void map_editor_notify_load(char* bg, char* fg, char* deco, char* map_path){
     if(bg != NULL){
         gfc_line_cpy(MapEditor.bg_path, bg);
     }
@@ -101,6 +109,7 @@ void map_editor_notify_load(char* bg, char* fg, char* deco){
     if(deco != NULL){
         gfc_line_cpy(MapEditor.deco_path, deco);
     }
+    gfc_line_cpy(MapEditor.map_path, map_path);
 }
 
 void menu_input_begin(){
@@ -203,6 +212,7 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
     
 
     if(gfc_input_command_released("pause") && *gamestate != 1){
+        SDL_ShowCursor(SDL_ENABLE);
         is_paused = 1;
         audio_pause_mod();
     }
@@ -211,7 +221,7 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         nk_style_push_color(ctx, &ctx->style.window.background, nk_rgba(0,0,0,100));
         nk_style_push_vec2(ctx, &ctx->style.window.padding, nk_vec2(0,0));
         nk_style_push_style_item(ctx, &ctx->style.window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,100)));
-        nk_begin(ctx, "pm_bg", nk_rect(0, 0, 1200, 720), 0);
+        nk_begin(ctx, "pm_bg", nk_rect(0, 0, 1200, 720), NK_WINDOW_NOT_INTERACTIVE);
         nk_end(ctx);
         nk_style_pop_vec2(ctx);
         
@@ -222,20 +232,33 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
             is_paused = 0;
             map_editor_enabled = 0;
             *gamestate = 0;
+            SDL_ShowCursor(SDL_DISABLE);
             map_manager_notify_editing(0);
             set_camera_target(entity_manager_get_player());
             audio_play_mod();
         }
         if(nk_button_label(ctx, "Save")){
-            //SJson* save = sj_new();
-            //sj_object_insert(save, "map", MapEd);
-            //sj_save(save, "save.json");   
+            SJson *save, *player, *inventory;
+            save = sj_object_new();
+            player = sj_object_new();
+            inventory = sj_object_new();
+            
+            player_save(player);
+            inventory_save(inventory);
+
+            sj_object_insert(save, "player", player);
+            sj_object_insert(save, "inventory", inventory);
+            sj_object_insert(save, "map", sj_new_str(MapEditor.map_path));
+
+            sj_save(save, "save.json");   
+            sj_free(save);
         }
         nk_layout_row_static(ctx, 32, 240, 1);
         if(nk_button_label(ctx, "Edit Map")){
             *gamestate = 2;
             map_editor_enabled = 1;
             is_paused = 0;
+            SDL_ShowCursor(SDL_ENABLE);
             map_manager_notify_editing(1);
             set_camera_target(NULL);
         }
@@ -289,74 +312,118 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
     }
 
     if(map_editor_enabled){
-        if (nk_begin(ctx, "Map Editor", nk_rect(50, 50, 230, 250), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE)){
-
-            nk_layout_row_dynamic(ctx, 32, 2);
+        if (nk_begin(ctx, "Map Editor", nk_rect(50, 50, 360, 380), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE)){
 
             if(*gamestate == 2){
-                if(nk_button_label(ctx, "Add Collision Rect")){
-                    map_editor_notify_add(MapEditor.new);
+                if(nk_tree_push(ctx, NK_TREE_TAB, "Collision", NK_MINIMIZED)){
+                    nk_layout_row_dynamic(ctx, 32, 2);
+                    if(nk_button_label(ctx, "Add")){
+                        map_editor_notify_add(MapEditor.new_collision);
+                    }
+
+                    if(nk_button_label(ctx, "Delete")){
+                        map_editor_notify_delete(MapEditor.selected);
+                    }
+
+                    if(MapEditor.selected != NULL){
+                        nk_property_float(ctx, "x", 0, &MapEditor.selected->pos.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "y", 0, &MapEditor.selected->pos.y, current_map_height(), 16, 16);
+                        nk_property_float(ctx, "w", 0, &MapEditor.selected->size.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "h", 0, &MapEditor.selected->size.y, current_map_height(), 16, 16);
+                    } else {
+                        nk_property_float(ctx, "x", 0, &MapEditor.new_collision.pos.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "y", 0, &MapEditor.new_collision.pos.y, current_map_height(), 16, 16);
+                        nk_property_float(ctx, "w", 0, &MapEditor.new_collision.size.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "h", 0, &MapEditor.new_collision.size.y, current_map_height(), 16, 16);
+                    }
+                    nk_tree_pop(ctx);
                 }
 
-                if(nk_button_label(ctx, "Delete Collision Rect")){
-                    map_editor_notify_delete(MapEditor.selected);
-                }
+                if(nk_tree_push(ctx, NK_TREE_TAB, "Warp", NK_MINIMIZED)){
+                    nk_layout_row_dynamic(ctx, 32, 2);
 
-                if(MapEditor.selected != NULL){
-                    nk_property_float(ctx, "x", 0, &MapEditor.selected->pos.x, current_map_width(), 16, 16);
-                    nk_property_float(ctx, "y", 0, &MapEditor.selected->pos.y, current_map_height(), 16, 16);
-                    nk_property_float(ctx, "w", 0, &MapEditor.selected->size.x, current_map_width(), 16, 16);
-                    nk_property_float(ctx, "h", 0, &MapEditor.selected->size.y, current_map_height(), 16, 16);
-                } else {
-                    nk_property_float(ctx, "x", 0, &MapEditor.new.pos.x, current_map_width(), 16, 16);
-                    nk_property_float(ctx, "y", 0, &MapEditor.new.pos.y, current_map_height(), 16, 16);
-                    nk_property_float(ctx, "w", 0, &MapEditor.new.size.x, current_map_width(), 16, 16);
-                    nk_property_float(ctx, "h", 0, &MapEditor.new.size.y, current_map_height(), 16, 16);
-                }
+                    if(nk_button_label(ctx, "Add")){
+                        map_editor_notify_add_warp(MapEditor.new_warp);
+                    }
 
+                    if(nk_button_label(ctx, "Delete")){
+                        map_editor_notify_delete_warp(MapEditor.selected);
+                    }
+
+                    if(MapEditor.selected_warp != NULL){
+                        nk_property_float(ctx, "wx", 0, &MapEditor.selected_warp->area.pos.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "wy", 0, &MapEditor.selected_warp->area.pos.y, current_map_height(), 16, 16);
+                        nk_property_float(ctx, "ww", 0, &MapEditor.selected_warp->area.size.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "wh", 0, &MapEditor.selected_warp->area.size.y, current_map_height(), 16, 16);
+                        nk_property_int(ctx, "Dest Warp", 0, &MapEditor.selected_warp->dest_warp, 100, 1, 1);
+                        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.selected_warp->load_map, sizeof(TextLine), nk_filter_default);                    
+                    } else {
+                        nk_property_float(ctx, "wx", 0, &MapEditor.new_warp.area.pos.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "wy", 0, &MapEditor.new_warp.area.pos.y, current_map_height(), 16, 16);
+                        nk_property_float(ctx, "ww", 0, &MapEditor.new_warp.area.size.x, current_map_width(), 16, 16);
+                        nk_property_float(ctx, "wh", 0, &MapEditor.new_warp.area.size.y, current_map_height(), 16, 16);
+                        nk_property_int(ctx, "Dest Warp", 0, &MapEditor.new_warp.dest_warp, 100, 1, 1);
+                        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.new_warp.load_map, sizeof(TextLine), nk_filter_default);
+                    }
+                    nk_tree_pop(ctx);
+                }
             }
 
             nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
             
             nk_layout_row_push(ctx, 0.2);
             nk_label(ctx, "BG Path", NK_TEXT_ALIGN_CENTERED);
-            nk_layout_row_push(ctx, 0.8);
+            nk_layout_row_push(ctx, 0.55);
             nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.bg_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_push(ctx, 0.2);
+            if(nk_button_label(ctx, "Set")){
+                map_editor_notify_set_bg(MapEditor.bg_path);
+            }
             nk_layout_row_end(ctx);
             
             nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
             nk_layout_row_push(ctx, 0.2);
             nk_label(ctx, "FG Path", NK_TEXT_ALIGN_CENTERED);
-            nk_layout_row_push(ctx, 0.8);
+            nk_layout_row_push(ctx, 0.55);
             nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.fg_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_push(ctx, 0.2);
+            if(nk_button_label(ctx, "Set")){
+                map_editor_notify_set_fg(MapEditor.fg_path);
+            }
             nk_layout_row_end(ctx);
             
             nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
             nk_layout_row_push(ctx, 0.2);
             nk_label(ctx, "Deco Path", NK_TEXT_ALIGN_CENTERED);
-            nk_layout_row_push(ctx, 0.8);
+            nk_layout_row_push(ctx, 0.55);
             nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.deco_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_push(ctx, 0.2);
+            if(nk_button_label(ctx, "Set")){
+                map_editor_notify_set_deco(MapEditor.deco_path);
+            }
             nk_layout_row_end(ctx);
 
-            nk_layout_row_dynamic(ctx, 32, 1);
-            if(nk_button_label(ctx, "Deselect")){
-                map_editor_notify_selected(NULL);
-            }
+            nk_layout_row_begin(ctx, NK_DYNAMIC, 32, 2);
+            nk_layout_row_push(ctx, 0.2);
+            nk_label(ctx, "Map Path", NK_TEXT_ALIGN_CENTERED);
+            nk_layout_row_push(ctx, 0.8);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.map_path, sizeof(TextLine), nk_filter_default);
+            nk_layout_row_end(ctx);
 
+            nk_layout_row_dynamic(ctx, 32, 2);
             if(nk_button_label(ctx, "New Map")){
                 map_editor_notify_selected(NULL);
+                map_editor_notify_selected_warp(NULL);
+                entity_manager_clear(entity_manager_get_player());
                 map_cleanup();
+            
+                map_new();
             }
 
             if(nk_button_label(ctx, "Save Map")){
-                //todo
+                map_save(MapEditor.map_path);
             }
 
-            nk_layout_row_dynamic(ctx, 32, 1);
-            if(nk_button_label(ctx, "Toggle Hitboxes")){
-                show_hitbox = !show_hitbox;
-                entity_manager_set_draw_debug(show_hitbox);
-            }
         }
         nk_end(ctx);
     
@@ -412,6 +479,28 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 
                     case ENEMY_SKULL: {
                         nk_label(ctx, "SKULL Selected", NK_TEXT_ALIGN_CENTERED);
+                        break;
+                    }
+
+                    case ENEMY_BAT: {
+                        int move_timer;
+
+                        nk_label(ctx, "Bat Config", NK_TEXT_ALIGN_LEFT);
+                        health = EnemyConfigs->BatConfig.health;
+                        move_timer = EnemyConfigs->BatConfig.move_timer;
+
+                        nk_property_int(ctx, "Health", 1, &health, 255, 1, 1);
+                        nk_property_int(ctx, "Move Timer", 1, &move_timer, 255, 1, 1);
+
+                        EnemyConfigs->BatConfig.health = (Uint8)health;
+                        EnemyConfigs->BatConfig.move_timer = (Uint16)move_timer;
+
+                        if(nk_button_label(ctx, "Save Config")){
+                            SJson* new_bat_conf = sj_object_new();
+                            sj_object_insert(new_bat_conf, "health", sj_new_int(health));
+                            sj_object_insert(new_bat_conf, "move_timer", sj_new_int(move_timer));
+                            sj_save(new_bat_conf, "bat_def.json");
+                        }
                         break;
                     }
 
@@ -604,7 +693,52 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
         nk_layout_row_dynamic(ctx, 32, 1);
         if(nk_button_label(ctx, "Start")){
             *gamestate = 0;
+            SDL_ShowCursor(SDL_DISABLE);
             audio_play_mod();
+        }
+        //This should show a list of saves
+        if(nk_button_label(ctx, "Load")){
+            SJson* save = sj_load("save.json");
+            if(save != NULL){
+                Vector2D position;
+                SJson *player, *pos_arr, *inventory, *pconsumables, *pcraftables;  
+                float stamina;
+                int i, health, money, consumables[CONSUMABLE_COUNT], craftables[CRAFTABLE_COUNT];
+
+                map_cleanup();
+                entity_manager_clear(entity_manager_get_player());
+                char* save_file_map = sj_get_string_value(sj_object_get_value(save, "map"));
+                map_load(save_file_map);
+
+                player = sj_object_get_value(save, "player");
+                if(player){
+                    sj_get_integer_value(sj_object_get_value(player, "health"), &health);
+                    sj_get_float_value(sj_object_get_value(player, "stamina"), &stamina);
+                    sj_get_integer_value(sj_object_get_value(player, "money"), &money);
+                    
+                    pos_arr = sj_object_get_value(player, "position");
+                    sj_get_float_value(sj_array_get_nth(pos_arr, 0), &position.x);
+                    sj_get_float_value(sj_array_get_nth(pos_arr, 1), &position.y);
+                    player_load(entity_manager_get_player(), position, health, stamina, money);
+                }
+
+                inventory = sj_object_get_value(save, "inventory");
+                if(inventory){
+                    pconsumables = sj_object_get_value(inventory, "consumables");
+                    pcraftables = sj_object_get_value(inventory, "craftables");
+                    for (i = 0; i < sj_array_get_count(pconsumables); i++){
+                        sj_get_integer_value(sj_array_get_nth(pconsumables, i), &consumables[i]);
+                    }
+                    for (i = 0; i < sj_array_get_count(pcraftables); i++){
+                        sj_get_integer_value(sj_array_get_nth(pcraftables, i), &craftables[i]);
+                    }
+                    inventory_load(consumables, craftables);
+                }
+
+
+                *gamestate = 0;
+                SDL_ShowCursor(SDL_DISABLE);
+            }
         }
         if(nk_button_label(ctx, "Quit")){
             *gamestate = 3;

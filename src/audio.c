@@ -23,21 +23,12 @@ void init_audio_sys(){
 }
 
 void audio_open_mod(char* path){
-
-	ModTracker* tracker = malloc(sizeof(ModTracker));
-	tracker_open_mod(tracker, path);
-	if(sys._tracker_playback != NULL){
-		if(strcmp(tracker->module.module_name, sys._tracker_playback->module.module_name) == 0){
-			tracker_close_mod(tracker);
-			free(tracker);
-			return;
-		} else {
-			audio_close_mod();
-		}
+	if(sys._tracker_playback == NULL){
+		sys._tracker_playback = (ModTracker*)malloc(sizeof(ModTracker));
 	}
 
-	sys._tracker_playback = tracker;
-
+	tracker_open_mod(sys._tracker_playback, path);
+	audio_pause_mod();
 	tracker_mod_set_sample_rate(sys._tracker_playback, 44100);
 }
 
@@ -50,6 +41,7 @@ void audio_pause_mod(){
 }
 
 void audio_close_mod(){
+	audio_pause_mod();
 	if(sys._tracker_playback != NULL){
 		tracker_close_mod(sys._tracker_playback);
 		free(sys._tracker_playback);

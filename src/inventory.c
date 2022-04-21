@@ -4,6 +4,7 @@
 
 typedef struct {
     Uint8 consumables[CONSUMABLE_COUNT];
+    Uint8 craftables[CRAFTABLE_COUNT];
     Sprite* consumable_counts[CONSUMABLE_COUNT];
     Sprite* consumable_icons;
     List* items;
@@ -14,7 +15,8 @@ static InventoryManager inventory = {0};
 void inventory_init(){
     char num[3];
     inventory.consumable_icons = gf2d_sprite_load_all("images/potions.png", 128, 128, 5);
-    inventory.items = gfc_list_new();
+    //todo: load craftables
+    inventory.items = gfc_list_new(); //fucking what??
     
     for (size_t i = 0; i < CONSUMABLE_COUNT; i++){
         inventory.consumables[i] = 3;
@@ -22,6 +24,9 @@ void inventory_init(){
         inventory.consumable_counts[i] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
     }
     
+    for (size_t i = 0; i < CRAFTABLE_COUNT; i++){
+        inventory.craftables[i] = 3;
+    }
 
     atexit(inventory_cleanup);
 }
@@ -63,6 +68,17 @@ Uint8 inventory_use_consumable(ConsumableType type){
     return 1;
 }
 
+
+void inventory_add_craftable(CraftType type, Uint8 count){
+    inventory.craftables[type] = (inventory.craftables[type] + count > 99 ? 99: inventory.craftables[type] + count);
+}
+
+void inventory_try_craft(CraftType item_1, CraftType item_2){
+    if(item_1 == RED && item_2 == BLUE){
+        //add a potion
+    }
+}
+
 void inventory_clear(){
     char num[3];
     
@@ -74,6 +90,46 @@ void inventory_clear(){
         snprintf(num, 3, "%d", inventory.consumables[i]);
         inventory.consumable_counts[i] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
     }
+
+    for (size_t i = 0; i < CRAFTABLE_COUNT; i++){
+        inventory.craftables[i] = 0;
+    }
+
+    gfc_list_delete(inventory.items);
+}
+
+void inventory_load(int consumables[CONSUMABLE_COUNT], int craftables[CRAFTABLE_COUNT]){
+    int i;
+    char num[3];
+    for (i = 0; i < CONSUMABLE_COUNT; i++){
+        inventory.consumables[i] = consumables[i];
+        gf2d_sprite_free(inventory.consumable_counts[i]);
+        snprintf(num, 3, "%d", inventory.consumables[i]);
+        inventory.consumable_counts[i] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
+    }
+
+    for (i = 0; i < CRAFTABLE_COUNT; i++){
+        inventory.craftables[i] = craftables[i];
+    }
+    
+}
+
+void inventory_save(SJson* save){
+    int i;
+    SJson *consumables, *craftables;
+    craftables = sj_array_new();
+    consumables = sj_array_new();
+
+    for (i = 0; i < CONSUMABLE_COUNT; i++){
+        sj_array_append(consumables, sj_new_int(inventory.consumables[i]));
+    }
+
+    for (i = 0; i < CRAFTABLE_COUNT; i++){
+        sj_array_append(craftables, sj_new_int(inventory.craftables[i]));
+    }
+
+    sj_object_insert(save, "consumables", consumables);
+    sj_object_insert(save, "craftables", craftables);
 }
 
 void inventory_show_consumables(){

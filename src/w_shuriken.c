@@ -14,7 +14,7 @@ void shuriken_think(Entity *self){
     self->rotation.z += 5.0f;
 
     Entity* other = get_colliding(self);
-    if(other != NULL && other != self->owner){
+    if(other != NULL && other != self->owner && other->type != ENT_WEAPON){
         other->health -= 8;
         entity_free(self);
         return;

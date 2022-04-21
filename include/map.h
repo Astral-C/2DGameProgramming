@@ -29,7 +29,7 @@ typedef struct {
     List* collision;
 
     Uint32 warp_count;
-    Warp* warps;
+    List* warps;
     
     TextLine name; //TODO: replace this with a hash?
     int map_width;
@@ -41,11 +41,23 @@ typedef struct {
 
 void map_load(char* name);
 void map_cleanup();
+void map_new();
+void map_save(char* path);
 
 void map_manager_notify_editing(Uint8 is_editing);
-void map_editor_notify_delete(Rect* to_delete);
+
 void map_editor_notify_add(Rect to_add);
+void map_editor_notify_delete();
+
+void map_editor_notify_add_warp(Warp to_add);
+void map_editor_notify_delete_warp();
+
 void map_editor_notify_can_select(int select);
+
+void map_editor_notify_set_bg(char* path);
+void map_editor_notify_set_fg(char* path);
+void map_editor_notify_set_deco(char* path);
+void map_editor_notify_set_dimensions(Vector2D dimensions);
 
 Uint8 collide_worldp(Vector2D p);
 Uint8 ent_collide_world(Entity* ent);
@@ -61,6 +73,7 @@ int current_map_height();
 
 void try_warp(Rect r);
 void map_manager_update();
+void map_manager_play_bgm();
 Vector2D map_get_player_spawn();
 
 #endif
