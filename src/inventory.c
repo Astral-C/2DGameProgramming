@@ -75,7 +75,7 @@ void inventory_add_craftable(CraftType type, Uint8 count){
 
 void inventory_try_craft(CraftType item_1, CraftType item_2){
     if(item_1 == RED && item_2 == BLUE){
-        //add a potion
+        inventory_add_consumable(HEALTH, 5);
     }
 }
 
