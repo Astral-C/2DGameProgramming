@@ -112,6 +112,8 @@ Entity* entity_manager_get_player();
 
 Entity* entity_manager_get_selected();
 
+void entity_manager_set_selected(Entity* ent);
+
 void entity_manager_think_edit();
 
 void entity_manager_time_freeze();

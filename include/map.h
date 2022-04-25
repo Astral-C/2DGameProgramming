@@ -24,12 +24,10 @@ typedef struct {
     Sprite* decoration;
     Sprite* foreground;
  
-    Uint32 rect_count;
-    //Rect* collision;
-    List* collision;
-
+    Uint32 col_count;
+    Rect collision[80];
     Uint32 warp_count;
-    List* warps;
+    Warp warps[15];
     
     TextLine name; //TODO: replace this with a hash?
     int map_width;
@@ -54,6 +52,7 @@ void map_editor_notify_delete_warp();
 
 void map_editor_notify_can_select(int select);
 
+void map_editor_notify_set_bgm(char* path);
 void map_editor_notify_set_bg(char* path);
 void map_editor_notify_set_fg(char* path);
 void map_editor_notify_set_deco(char* path);

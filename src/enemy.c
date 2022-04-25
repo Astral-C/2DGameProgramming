@@ -76,7 +76,7 @@ void bat_think(Entity* self){
         }
 
         if(bat->move_timer == 0){
-            bat->state = IDLE;
+            bat->state = WANDER;
         }
 
         break;
@@ -380,6 +380,12 @@ void magician_think(Entity* self){
         ui_manager_free(magician->healthbar);
         entity_free(self);
     }
+}
+
+magician_update_home(Entity* magician){
+    if(magician == NULL) return;
+    MagicianEnemyProps* props = magician->data;
+    props->home_set = 0;
 }
 
 /*

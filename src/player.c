@@ -43,6 +43,7 @@ typedef struct {
     int direction; // 15
     int fight_timer;
     int is_fighting;
+    int whip_timer;
     float stamina; // 19
     Weapon active_weapon; // 23
 } PlayerData;
@@ -147,15 +148,15 @@ void player_think(Entity *self){
         }
 
         if(left_held){
-            self->velocity.x = (pd->active_effect == SPEED ? -6 : -2);
+            self->velocity.x = (pd->active_effect == SPEED ? -9 : -4);
         } else if (right_held){
-            self->velocity.x = (pd->active_effect == SPEED ? 6 : 2);
+            self->velocity.x = (pd->active_effect == SPEED ? 9 : 4);
         }
         
         if(self->velocity.x > 0){
-            self->velocity.x = (self->velocity.x - 0.1 < 0.1 ? 0 : self->velocity.x - 0.1);
+            self->velocity.x = (self->velocity.x - 0.5 < 0.6 ? 0 : self->velocity.x - 0.5);
         } else if(self->velocity.x < 0){
-            self->velocity.x = (self->velocity.x + 0.1 > -0.1 ? 0 : self->velocity.x + 0.1);
+            self->velocity.x = (self->velocity.x + 0.5 > -0.6 ? 0 : self->velocity.x + 0.5);
         } else if(self->velocity.x == 0){
             pd->state = IDLE;
         }
@@ -171,9 +172,9 @@ void player_think(Entity *self){
         self->frame = 4;
         
         if(left_held){
-            self->velocity.x = (pd->active_effect == SPEED ? -6 : -2);
+            self->velocity.x = (pd->active_effect == SPEED ? -9 : -4);
         } else if (right_held){
-            self->velocity.x = (pd->active_effect == SPEED ? 6 : 2);
+            self->velocity.x = (pd->active_effect == SPEED ? 9 : 4);
         }
         
         if(!strafing){
@@ -218,7 +219,7 @@ void player_think(Entity *self){
         if(gfc_input_command_released("fire_weapon") && pd->stamina > 0){
             int dir = (pd->direction ? -1 : 1);
             Entity* w = NULL;
-            pd->fight_timer -= 30;
+            pd->fight_timer -= 25;
             switch (pd->active_weapon)
             {
             case BOMB:
@@ -257,7 +258,12 @@ void player_think(Entity *self){
         }
 
         if(gfc_input_command_released("whip")){
-            slog("whippin");
+            pd->whip_timer = 100;
+        }
+
+        if(pd->whip_timer > 0){
+            self->frame = 5;
+            pd->whip_timer -= 10;
             Rect whip_hb = self->hurtbox;
             whip_hb.pos.x += (32 * (pd->direction ? -1 : 1));
             whip_hb.pos.y += 32;
@@ -291,7 +297,7 @@ void player_think(Entity *self){
     }
 
     if(pd->fight_timer < 0 && pd->is_fighting == 0){
-        audio_open_mod("audio/neon_techno.mod");
+        audio_open_mod("audio/musix-shine.mod");
         audio_play_mod();
         pd->is_fighting = 1;
     } else if(pd->fight_timer < 200){

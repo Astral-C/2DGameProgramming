@@ -110,7 +110,7 @@ void entity_manager_think_edit(){
     state = SDL_GetMouseState(&x, &y);
     mouse_pos = vector2d(x, y);
     vector2d_add(mouse_pos, get_camera_pos(), mouse_pos);
-    if(state & SDL_BUTTON_LMASK != 0){
+    if((state & SDL_BUTTON_LMASK) != 0){
         for(i=0;i<entity_manager.max_entities;i++){
             if(entity_manager.entity_list[i]._inuse){
                 if(rect_collidep(mouse_pos, entity_manager.entity_list[i].hurtbox) && entity_manager.dragging == 0){
@@ -127,6 +127,9 @@ void entity_manager_think_edit(){
         vector2d_scale(offset, entity_manager.selected->hurtbox.size, 0.5);
         vector2d_sub(entity_manager.selected->position, mouse_pos, offset);
         entity_manager.selected->hurtbox.pos = entity_manager.selected->position;
+        if(entity_manager.selected->type == ENT_ENEMY && *((EnemyType*)entity_manager.selected->data) == ENEMY_MAGICIAN){
+            magician_update_home(entity_manager.selected);
+        }
     }
 }
 
@@ -163,6 +166,10 @@ Entity* entity_manager_get_player(){
 
 Entity* entity_manager_get_selected(){
     return entity_manager.selected;
+}
+
+void entity_manager_set_selected(Entity* ent){
+    entity_manager.selected = ent;
 }
 
 void entity_free(Entity* ent){
@@ -241,7 +248,7 @@ void entity_manager_kill_enemies(){
 
 void entity_manager_serialize(SJson* map){
     int i, type;
-    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy, *spawner;
+    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy;
     
     enemies = sj_array_new();
     spawners = sj_array_new();

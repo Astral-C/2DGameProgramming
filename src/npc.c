@@ -19,7 +19,7 @@ void npc_think(Entity* self){
 
     if(props->has_quest){
         quest = sj_object_get_value(props->npc_json, "quest");
-        quest_name = sj_get_string_value(sj_object_get_value(quest, "id"));
+        quest_name = (char*)sj_get_string_value(sj_object_get_value(quest, "id"));
     }
 
     if(!interaction_manager.interacting && interaction_manager.requested_interaction && rect_collider(self->hurtbox, p->hurtbox)){
@@ -60,9 +60,9 @@ void npc_think(Entity* self){
         EventType type;
         int tag, complete;
 
-        type = sj_get_integer_value(quest, "type");
-        tag = sj_get_integer_value(quest, "type");
-        complete = sj_get_integer_value(quest, "complete");
+        sj_get_integer_value(sj_object_get_value(quest, "type"), (int*)&type);
+        sj_get_integer_value(sj_object_get_value(quest, "tag"), &tag);
+        sj_get_integer_value(sj_object_get_value(quest, "complete"), &complete);
 
         if(gfc_input_command_released("switch_weapon")){
             interaction_manager.interacting = NULL;

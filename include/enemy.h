@@ -119,9 +119,9 @@ Entity* enemy_spawner_new(EnemyType type, Uint8 spawn_count, Uint8 spawn_interva
 Entity* bat_new();
 Entity* golem_new();
 Entity* skull_new();
-
 Entity* mushroom_new();
 Entity* magician_new();
+Entity* magicin_update_home(Entity* magician);
 
 Entity* throwable_atk_new(Entity* thrower, char* sprite_path);
 

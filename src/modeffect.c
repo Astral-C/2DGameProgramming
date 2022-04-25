@@ -258,7 +258,7 @@ void set_finetune(ModTracker* tracker, Channel* chan)
 
 void pattern_loop(ModTracker* tracker, Channel* chan)
 {
-	if (chan->effect_args & 0x0F == 0x00)
+	if ((chan->effect_args & 0x0F) == 0x00)
 	{
 		//marks the start of the loop
 		tracker->loop_row = tracker->current_row;
@@ -267,7 +267,7 @@ void pattern_loop(ModTracker* tracker, Channel* chan)
 	else
 	{
 		//if we are on the final tick, we swap rows
-		if (tracker->_current_ticks == tracker->speed && tracker->loop_count < chan->effect_args & 0x0F)
+		if (tracker->_current_ticks == tracker->speed && tracker->loop_count < (chan->effect_args & 0x0F))
 		{
 			tracker->current_row = tracker->loop_row;
 			tracker->loop_count++;
@@ -347,7 +347,7 @@ void invert_loop(ModTracker* tracker, Channel* chan)
 
 void set_speed_tempo(ModTracker* tracker, Channel* chan)
 {
-	printf("set tempo/speed\n");
+	//printf("set tempo/speed\n");
 	if(tracker->_current_ticks == 0){
 		if(chan->effect_args <= 0x1F && chan->effect_args != 0x00){
 			tracker->speed = chan->effect_args;

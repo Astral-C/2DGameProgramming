@@ -7,12 +7,13 @@
 #include "npc.h"
 #include "audio.h"
 #include "menu.h"
+#include "pg_ui.h"
 
 typedef struct {
     Uint8 editing;
     Map current_map;
     int should_warp;
-    Warp* warp_target;
+    Warp warp_target;
     TextLine map_jsn_path;
     TextLine map_bgm;
 } MapManager;
@@ -32,8 +33,10 @@ int current_map_height(){
 }
 
 void map_manager_play_bgm(){
-    audio_open_mod(map_manager.map_bgm);
-    audio_play_mod();
+    if(gfc_line_cmp(map_manager.map_bgm, "") != 0){
+        audio_open_mod(map_manager.map_bgm);
+        audio_play_mod();
+    }
 }
 
 ///
@@ -43,6 +46,7 @@ void map_manager_play_bgm(){
 ///
 
 void map_cleanup(){
+    int i;
     if(map_manager.current_map.foreground != NULL){
         gf2d_sprite_free(map_manager.current_map.foreground);
     }
@@ -52,19 +56,11 @@ void map_cleanup(){
     if(map_manager.current_map.decoration != NULL){
         gf2d_sprite_free(map_manager.current_map.decoration);
     }
-    if(map_manager.current_map.collision != NULL){
-        gfc_list_delete(map_manager.current_map.collision);
-        map_manager.current_map.collision = NULL;
-    }
-    if(map_manager.current_map.warps != NULL){
-        gfc_list_delete(map_manager.current_map.warps);
-        map_manager.current_map.warps = NULL;
-    }
-    if(map_manager.current_map.warps != NULL){
-        memset(map_manager.current_map.warps, 0, sizeof(Warp) * map_manager.current_map.warp_count);
-        free(map_manager.current_map.warps);
-        map_manager.current_map.warps = NULL;
-    }
+    
+    memset(map_manager.current_map.collision, 0, sizeof(map_manager.current_map.collision));
+    memset(map_manager.current_map.warps, 0, sizeof(map_manager.current_map.warps));
+    map_manager.current_map.col_count = 0;
+    map_manager.current_map.warp_count = 0;
 }
 
 void map_load(char* map_def){
@@ -78,6 +74,8 @@ void map_load(char* map_def){
         return;
     }
     
+    ui_manager_clear_ephemeral();
+
     gfc_line_cpy(map_manager.map_jsn_path, map_def);
 
     /* Note: I may change this later to build the map from a tiled json export, we'll see */
@@ -118,15 +116,11 @@ void map_load(char* map_def){
         return;
     }
 
-    int collision_rect_count = sj_array_get_count(collision);
+    map_manager.current_map.col_count = sj_array_get_count(collision);
+    if(map_manager.current_map.col_count > 80) map_manager.current_map.col_count = 80;
 
-    if(map_manager.current_map.collision != NULL) gfc_list_delete(map_manager.current_map.collision);
-    //map_manager.current_map.collision = gfc_allocate_array(sizeof(Rect), map_manager.current_map.rect_count);
-    map_manager.current_map.collision = gfc_list_new();
-
-
-    for (int cr = 0; cr < collision_rect_count; cr++){
-        Rect* r = malloc(sizeof(Rect));
+    for (int cr = 0; cr < map_manager.current_map.col_count; cr++){
+        Rect* r = &map_manager.current_map.collision[cr];
         SJson* rect = sj_array_get_nth(collision, cr);
         int x, y, w, h;
         sj_get_integer_value(sj_array_get_nth(rect, 0), &x);
@@ -137,7 +131,33 @@ void map_load(char* map_def){
         r->pos.y = (float)(y<<2);
         r->size.x = (float)(w<<2);
         r->size.y = (float)(h<<2);
-        gfc_list_append(map_manager.current_map.collision, r);
+    }
+
+    map_manager.current_map.warp_count = sj_array_get_count(warps);
+    if(map_manager.current_map.warp_count > 15) map_manager.current_map.warp_count = 15;
+    for (int cr = 0; cr < map_manager.current_map.warp_count; cr++){
+        SJson* warp = sj_array_get_nth(warps, cr);        
+        Warp* nwarp = &map_manager.current_map.warps[cr];
+        char* warp_path = (char*)sj_get_string_value(sj_object_get_value(warp, "map"));
+        
+        strncpy(nwarp->load_map, warp_path, sizeof(TextLine));
+
+        SJson* dest = sj_object_get_value(warp, "dest_warp");
+        if(!dest){
+            nwarp->dest_warp = -1;
+            //map_manager.current_map.warps[cr].dest_warp = -1;  
+        } else {
+            sj_get_integer_value(dest, &nwarp->dest_warp);
+        }
+
+        SJson* rect = sj_object_get_value(warp, "box");
+        int x, y, w, h;
+        sj_get_integer_value(sj_array_get_nth(rect, 0), &x);
+        sj_get_integer_value(sj_array_get_nth(rect, 1), &y);
+        sj_get_integer_value(sj_array_get_nth(rect, 2), &w);
+        sj_get_integer_value(sj_array_get_nth(rect, 3), &h);
+
+        nwarp->area = (Rect){{x << 2, y << 2}, {w << 2, h << 2}};
     }
 
     /*
@@ -182,6 +202,10 @@ void map_load(char* map_def){
             Entity* ent = NULL;
             switch (type)
             {
+            case ENEMY_BAT:
+                ent = bat_new();
+                break;
+
             case ENEMY_GOLEM:
                 ent = golem_new();
                 break;
@@ -200,39 +224,6 @@ void map_load(char* map_def){
                 ent->position.y = (float)(y << 2);
             }
         }
-    }
-
-    int warp_count = sj_array_get_count(warps);
-    map_manager.current_map.warp_count = warp_count;
-
-    //if(map_manager.current_map.warps != NULL) free(map_manager.current_map.warps);
-    //map_manager.current_map.warps = gfc_allocate_array(sizeof(Warp), warp_count);    
-    map_manager.current_map.warps = gfc_list_new();
-    for (int cr = 0; cr < warp_count; cr++){
-        SJson* warp = sj_array_get_nth(warps, cr);
-        
-        Warp* nwarp = (Warp*)malloc(sizeof(Warp));
-        char* warp_path = (char*)sj_get_string_value(sj_object_get_value(warp, "map"));
-        
-        strncpy(nwarp->load_map, warp_path, sizeof(TextLine));
-
-        SJson* dest = sj_object_get_value(warp, "dest_warp");
-        if(!dest){
-            nwarp->dest_warp = -1;
-            //map_manager.current_map.warps[cr].dest_warp = -1;  
-        } else {
-            sj_get_integer_value(dest, &nwarp->dest_warp);
-        }
-
-        SJson* rect = sj_object_get_value(warp, "box");
-        int x, y, w, h;
-        sj_get_integer_value(sj_array_get_nth(rect, 0), &x);
-        sj_get_integer_value(sj_array_get_nth(rect, 1), &y);
-        sj_get_integer_value(sj_array_get_nth(rect, 2), &w);
-        sj_get_integer_value(sj_array_get_nth(rect, 3), &h);
-
-        nwarp->area = (Rect){{x << 2, y << 2}, {w << 2, h << 2}};
-        gfc_list_append(map_manager.current_map.warps, nwarp);
     }
 
 
@@ -277,7 +268,7 @@ void map_load(char* map_def){
         }
     }
 
-    map_editor_notify_load(map_bg, map_fg, map_deco, map_def);
+    map_editor_notify_load(music_bg, map_bg, map_fg, map_deco, map_def);
 
     map_manager.current_map.map_width = map_manager.current_map.background->frame_w * 4;
     map_manager.current_map.map_height = map_manager.current_map.background->frame_h * 4;
@@ -287,8 +278,7 @@ void map_load(char* map_def){
 }
 
 void map_new(){
-    map_manager.current_map.warps = gfc_list_new();
-    map_manager.current_map.collision = gfc_list_new();
+    //what? how?
 }
 
 void map_save(char* path){
@@ -306,11 +296,13 @@ void map_save(char* path){
         sj_object_insert(map, "map_bg", sj_new_str(map_manager.current_map.background->filepath));
     }
     
+    sj_object_insert(map, "music_ambient", sj_new_str(map_manager.map_bgm));
+
     sj_object_insert(map, "is_town", sj_new_int(map_manager.current_map.is_town));
 
     collision = sj_array_new();
-    for(i=0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
-        Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+    for(i=0; i < map_manager.current_map.col_count; i++){
+        Rect* r = &map_manager.current_map.collision[i];
         cur_rect = sj_array_new();
         sj_array_append(cur_rect, sj_new_int(((int)r->pos.x) >> 2));
         sj_array_append(cur_rect, sj_new_int(((int)r->pos.y) >> 2));
@@ -322,8 +314,8 @@ void map_save(char* path){
     sj_object_insert(map, "collision", collision);
 
     warps = sj_array_new();
-    for (i = 0; i < gfc_list_get_count(map_manager.current_map.warps); i++){
-        Warp* r = gfc_list_get_nth(map_manager.current_map.warps, i);
+    for (i = 0; i < map_manager.current_map.warp_count; i++){
+        Warp* r = &map_manager.current_map.warps[i];
         cur_warp = sj_object_new();
         cur_rect = sj_array_new();
         
@@ -352,12 +344,11 @@ void map_manager_update(){
     if(map_manager.editing == 0){
         if(map_manager.should_warp == 1){
             entity_manager_clear(entity_manager_get_player());
-            ui_manager_clear_ephemeral();
-            map_load(map_manager.warp_target->load_map);
+            map_load(map_manager.warp_target.load_map);
             map_editor_notify_selected(NULL);
             selected = -1;
-            if(map_manager.warp_target->dest_warp != -1){
-                Warp* wrp = gfc_list_get_nth(map_manager.current_map.warps, map_manager.warp_target->dest_warp);
+            if(map_manager.warp_target.dest_warp != -1){
+                Warp* wrp = &map_manager.current_map.warps[map_manager.warp_target.dest_warp];//gfc_list_get_nth(map_manager.current_map.warps, map_manager.warp_target->dest_warp);
                 entity_manager_get_player()->position = wrp->area.pos;
                 map_manager.current_map.player_spawn = wrp->area.pos;
             }
@@ -377,8 +368,8 @@ void map_manager_update(){
         }
 
         if((state & SDL_BUTTON_LMASK) != 0 && dragging == 0){
-            for(i=0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
-                Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+            for(i=0; i < map_manager.current_map.col_count; i++){
+                Rect* r = &map_manager.current_map.collision[i];//gfc_list_get_nth(map_manager.current_map.collision, i);
                 if(rectp_collidep(mouse_pos, r)){
                     map_editor_notify_selected(r);
                     selected = i;
@@ -389,8 +380,8 @@ void map_manager_update(){
                 }
             }
 
-            for (i = 0; i < gfc_list_get_count(map_manager.current_map.warps); i++){
-                Warp* r = gfc_list_get_nth(map_manager.current_map.warps, i);
+            for (i = 0; i < map_manager.current_map.warp_count; i++){
+                Warp* r = &map_manager.current_map.warps[i];
                 if(rect_collidep(mouse_pos, r->area)){
                     map_editor_notify_selected_warp(r);
                     selected_warp = i;
@@ -398,7 +389,7 @@ void map_manager_update(){
                 }
             }
         } else if ((state & SDL_BUTTON_LMASK) != 0 && dragging == 1){
-            Rect* r = gfc_list_get_nth(map_manager.current_map.collision, selected);
+            Rect* r = &map_manager.current_map.collision[selected];
             r->pos.x += x - px;
             r->pos.y += y - py;
             px = x;
@@ -410,11 +401,11 @@ void map_manager_update(){
 }
 
 void try_warp(Rect r){
-    for (size_t i = 0; i < gfc_list_get_count(map_manager.current_map.warps); i++){
-        Warp* wrp = gfc_list_get_nth(map_manager.current_map.warps, i);
+    for (size_t i = 0; i < map_manager.current_map.warp_count; i++){
+        Warp* wrp = &map_manager.current_map.warps[i];//gfc_list_get_nth(map_manager.current_map.warps, i);
         if(rect_collider(wrp->area, r)){
             map_manager.should_warp = 1;
-            map_manager.warp_target = wrp;
+            memcpy(&map_manager.warp_target, wrp, sizeof(Warp));
             break;
         }
     }
@@ -448,28 +439,28 @@ void map_manager_draw_fg(){
     
     if(map_manager.editing == 1){
         Vector2D cam = get_camera_pos();
-        for (size_t i = 0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
+        for (size_t i = 0; i < map_manager.current_map.col_count; i++){
             if(i == selected){
                 SDL_SetRenderDrawColor(gf2d_graphics_get_renderer(), 0xFF, 0xFF, 0xFF, 0xFF);
             } else {
                 SDL_SetRenderDrawColor(gf2d_graphics_get_renderer(), 0xFF, 0x00, 0xFF, 0xFF);
             }
             SDL_FRect drect;
-            Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+            Rect* r = &map_manager.current_map.collision[i];//gfc_list_get_nth(map_manager.current_map.collision, i);
             drect.x = r->pos.x - cam.x;
             drect.y = r->pos.y - cam.y;
             drect.w = r->size.x;
             drect.h = r->size.y;
             SDL_RenderDrawRectF(gf2d_graphics_get_renderer(), &drect);
         }
-        for (size_t i = 0; i < gfc_list_get_count(map_manager.current_map.warps); i++){
+        for (size_t i = 0; i < map_manager.current_map.warp_count; i++){
             if(i == selected_warp){
                 SDL_SetRenderDrawColor(gf2d_graphics_get_renderer(), 0xFF, 0xAA, 0xAA, 0xFF);
             } else {
                 SDL_SetRenderDrawColor(gf2d_graphics_get_renderer(), 0x00, 0xAA, 0xFF, 0xFF);
             }
             SDL_FRect drect;
-            Warp* r = gfc_list_get_nth(map_manager.current_map.warps, i);
+            Warp* r = &map_manager.current_map.warps[i];//gfc_list_get_nth(map_manager.current_map.warps, i);
             drect.x = r->area.pos.x - cam.x;
             drect.y = r->area.pos.y - cam.y;
             drect.w = r->area.size.x;
@@ -494,24 +485,48 @@ void map_manager_notify_editing(Uint8 is_editing){
 }
 
 void map_editor_notify_delete(){
-    gfc_list_delete_nth(map_manager.current_map.collision, selected);
+    memset(&map_manager.current_map.collision[selected], 0, sizeof(Rect));
+    if(selected_warp == map_manager.current_map.col_count - 1){
+        map_manager.current_map.col_count--;
+        return;
+    }
+
+    memmove(&map_manager.current_map.collision[selected], &map_manager.current_map.collision[selected+1], sizeof(Rect)*(map_manager.current_map.col_count - selected));
+    map_manager.current_map.col_count--;
 }
 
 void map_editor_notify_add(Rect to_add){
-    Rect* r = malloc(sizeof(Rect));
-    memcpy(r, &to_add, sizeof(Rect));
-    gfc_list_append(map_manager.current_map.collision, r);
+    if(map_manager.current_map.col_count + 1 >= 50){
+        return;
+    }
+    memcpy(&map_manager.current_map.collision[map_manager.current_map.col_count], &to_add, sizeof(Rect));
+    map_manager.current_map.col_count++;
 }
 
 void map_editor_notify_delete_warp(){
-    gfc_list_delete_nth(map_manager.current_map.warps, selected_warp);
+    memset(&map_manager.current_map.warps[selected_warp], 0, sizeof(Warp));
+    if(selected_warp == map_manager.current_map.warp_count - 1){
+        map_manager.current_map.warp_count--;
+        return;
+    }
+
+    memmove(&map_manager.current_map.warps[selected_warp], &map_manager.current_map.warps[selected_warp+1], sizeof(Warp)*(map_manager.current_map.warp_count - selected_warp));
+    map_manager.current_map.warp_count--;
 }
 
 void map_editor_notify_add_warp(Warp to_add){
-    Warp* r = malloc(sizeof(Warp));
-    memcpy(r, &to_add, sizeof(Warp));
-    gfc_list_append(map_manager.current_map.warps, r);
+    if(map_manager.current_map.warp_count + 1 >= 15){
+        return;
+    }
+    memcpy(&map_manager.current_map.warps[map_manager.current_map.warp_count], &to_add, sizeof(Warp));
+    map_manager.current_map.warp_count++;
 }
+
+void map_editor_notify_set_bgm(char* path){
+    gfc_line_cpy(map_manager.map_bgm, path);
+    audio_open_mod(path);
+}
+
 
 void map_editor_notify_set_bg(char* path){
     if(map_manager.current_map.background != NULL){
@@ -549,8 +564,8 @@ void map_editor_notify_set_dimensions(Vector2D dimensions){
 
 
 Uint8 collide_worldp(Vector2D p){
-    for (int i = 0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
-        Rect* r = gfc_list_get_nth(map_manager.current_map.collision, i);
+    for (int i = 0; i < map_manager.current_map.col_count; i++){
+        Rect* r = &map_manager.current_map.collision[i];
         if(rectp_collidep(p, r)){
             return 1;
         }
@@ -559,7 +574,6 @@ Uint8 collide_worldp(Vector2D p){
 }
 
 Uint8 ent_collide_world(Entity* ent){
-    Vector2D floor_l, floor_r;
     Rect r1 = ent->hurtbox;
     vector2d_add(r1.pos, ent->hurtbox.pos, ent->velocity);
     Uint8 col_data = 0;
@@ -574,8 +588,8 @@ Uint8 ent_collide_world(Entity* ent){
         return COL_FLOOR;
     }
 
-    for (int i = 0; i < gfc_list_get_count(map_manager.current_map.collision); i++){
-        Rect* r2 = gfc_list_get_nth(map_manager.current_map.collision, i);
+    for (int i = 0; i < map_manager.current_map.col_count; i++){
+        Rect* r2 = &map_manager.current_map.collision[i];
         Uint8 col_xl = r1.pos.x <= r2->pos.x + r2->size.x;
         Uint8 col_xr = r1.pos.x + r1.size.x >= r2->pos.x;
 

@@ -19,7 +19,7 @@ void menu_draw();
 //map editor functions
 void map_editor_notify_selected(Rect* rect);
 void map_editor_notify_selected_warp(Warp* rect);
-void map_editor_notify_load(char* bg, char* fg, char* deco, char* map_path);
+void map_editor_notify_load(char* bgm, char* bg, char* fg, char* deco, char* map_path);
 
 int game_paused();
 

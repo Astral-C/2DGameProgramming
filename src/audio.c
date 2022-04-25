@@ -25,6 +25,8 @@ void init_audio_sys(){
 void audio_open_mod(char* path){
 	if(sys._tracker_playback == NULL){
 		sys._tracker_playback = (ModTracker*)malloc(sizeof(ModTracker));
+	} else if(sys._tracker_playback->loaded_mod) {
+		tracker_close_mod(sys._tracker_playback);
 	}
 
 	tracker_open_mod(sys._tracker_playback, path);

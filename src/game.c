@@ -28,9 +28,6 @@ typedef enum {
 int main(int argc, char * argv[])
 {
     /*variable declarations*/
-    int done = 0;
-    const Uint8 * keys;
-
     gamestate state = MAIN_MENU;
     float mf = 0;
     
@@ -81,7 +78,6 @@ int main(int argc, char * argv[])
     {
         //int start = SDL_GetTicks();
         SDL_PumpEvents();   // update SDL's internal event structures
-        keys = SDL_GetKeyboardState(NULL); // get the keyboard state for this frame
         /*update things here*/
         //SDL_GetMouseState(&mx,&my);
         mf+=0.1;
@@ -98,7 +94,6 @@ int main(int argc, char * argv[])
             case PLAY:
 
                 if(!game_paused()){
-
                     entity_manager_think_all();
                 }
 

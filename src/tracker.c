@@ -80,7 +80,7 @@ uint8_t tracker_open_mod(ModTracker* tracker, char* mod){
 #ifdef debug_write
 	tracker->dump = fopen("raw_pcm.pcm", "w");
 #endif
-
+	return 1;
 }
 
 
@@ -187,20 +187,15 @@ void tracker_mod_set_sample_rate(ModTracker* tracker, uint32_t sampleRate){
 }
 
 void tracker_mod_update(ModTracker* tracker, int16_t* buffer, uint32_t buf_size){
-	int samples_per_tick, buff_ptr;
+	int buff_ptr;
 	int16_t ch, samp_l, samp_r;
 	Channel* chan;
-	int16_t mixed;
 	buff_ptr = 0;
 
 	while(buff_ptr < buf_size){
 		samp_l = 0;
 		samp_r = 0;
 		tracker_mod_tick(tracker);
-
-#ifdef debug_write
-		mixed = 0;
-#endif
 
 		for (ch = 0; ch < 4; ch++){
 			chan = &tracker->channels[ch];
@@ -220,7 +215,7 @@ void tracker_mod_update(ModTracker* tracker, int16_t* buffer, uint32_t buf_size)
 				if (instrument->repeat_length > 1)
 				{
 					//if loop length is more than 1, the sample loops (0 supposedly is unsupported but there's no docs)
-					chan->sample_offset = instrument->repeat_offset + fmod(chan->sample_offset, instrument->repeat_length);
+					chan->sample_offset = instrument->repeat_offset + ((int)chan->sample_offset % instrument->repeat_length);
 				}
 				else
 				{
