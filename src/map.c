@@ -46,7 +46,6 @@ void map_manager_play_bgm(){
 ///
 
 void map_cleanup(){
-    int i;
     if(map_manager.current_map.foreground != NULL){
         gf2d_sprite_free(map_manager.current_map.foreground);
     }

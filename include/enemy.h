@@ -121,7 +121,7 @@ Entity* golem_new();
 Entity* skull_new();
 Entity* mushroom_new();
 Entity* magician_new();
-Entity* magicin_update_home(Entity* magician);
+void magician_update_home(Entity* magician);
 
 Entity* throwable_atk_new(Entity* thrower, char* sprite_path);
 

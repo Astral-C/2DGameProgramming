@@ -215,6 +215,7 @@ void skull_think(Entity* self){
         if(self->owner) ((EnemySpawnerProps*)self->owner->data)->_remaining_ents--;
         
         if(self->health <= 0){
+            quest_manager_notify(ET_KillEnemy, ENEMY_SKULL);
             if(gfc_random() < 0.4){
                 Entity* potion = spawn_potion(INVISIBILITY);
                 vector2d_copy(potion->position, self->position);
@@ -266,6 +267,7 @@ void mushroom_think(Entity* self){
     }
 
     if(self->health <= 0){
+        quest_manager_notify(ET_KillEnemy, ENEMY_MUSHROOM);
         if(gfc_random() < 0.4){
             Entity* potion = spawn_potion(TIME_FREEZE);
             vector2d_copy(potion->position, self->position);
@@ -369,6 +371,7 @@ void magician_think(Entity* self){
     }
 
     if(self->health <= 0){
+        quest_manager_notify(ET_KillEnemy, ENEMY_MAGICIAN);
         float r = gfc_random();
         if(r < 0.4){
             Entity* potion = spawn_potion(STAMINA);
@@ -382,9 +385,9 @@ void magician_think(Entity* self){
     }
 }
 
-magician_update_home(Entity* magician){
+void magician_update_home(Entity* magician){
     if(magician == NULL) return;
-    MagicianEnemyProps* props = magician->data;
+    MagicianEnemyProps* props = (MagicianEnemyProps*)magician->data;
     props->home_set = 0;
 }
 

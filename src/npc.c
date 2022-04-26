@@ -13,13 +13,13 @@ static InteractionManager interaction_manager = {0};
 
 void npc_think(Entity* self){
     SJson* quest;
-    char* quest_name;
+    char* quest_id;
     Entity* p = entity_manager_get_player();
     NpcProps* props = (NpcProps*)self->data;
 
     if(props->has_quest){
         quest = sj_object_get_value(props->npc_json, "quest");
-        quest_name = (char*)sj_get_string_value(sj_object_get_value(quest, "id"));
+        quest_id = (char*)sj_get_string_value(sj_object_get_value(quest, "id"));
     }
 
     if(!interaction_manager.interacting && interaction_manager.requested_interaction && rect_collider(self->hurtbox, p->hurtbox)){
@@ -31,10 +31,11 @@ void npc_think(Entity* self){
         gf2d_sprite_free(props->textbox_text);
 
         char* page_text = "";
-        if(!props->has_quest || (props->has_quest && quest_manager_check_completion(quest_name) == 1)){
+        if(!props->has_quest || (props->has_quest && quest_manager_check_completion(quest_id) == 1)){
+            quest_manager_check_reward(quest_id);
             page_text = (char*)sj_get_string_value(sj_array_get_nth(sj_object_get_value(props->npc_json, "pages"), interaction_manager.current_page % props->textbox_pages));
         } else {
-            if(props->has_quest && quest_manager_check_completion(quest_name) == 0){
+            if(props->has_quest && quest_manager_check_completion(quest_id) == 0){
                 page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "progress_msg"));
             } else {
                 page_text = (char*)sj_get_string_value(sj_object_get_value(quest, "incomplete_text"));
@@ -56,27 +57,42 @@ void npc_think(Entity* self){
                 inventory_add_consumable(props->sell_type, 1);
             }
         }
-    } else if(!props->is_shop && props->has_quest && quest_manager_check_completion(quest_name) == 0xFF) {
+    } else if(!props->is_shop && props->has_quest && quest_manager_check_completion(quest_id) == 0xFF) {
         EventType type;
-        int tag, complete;
+        char* quest_name, *quest_description;
+        int tag, complete, reward_type, reward_value_1, reward_value_2;
 
         sj_get_integer_value(sj_object_get_value(quest, "type"), (int*)&type);
         sj_get_integer_value(sj_object_get_value(quest, "tag"), &tag);
         sj_get_integer_value(sj_object_get_value(quest, "complete"), &complete);
+
+        SJson* rwt = sj_object_get_value(quest, "reward_type");
+        if(rwt != NULL){
+            sj_get_integer_value(sj_object_get_value(quest, "reward_type"), &reward_type);
+            sj_get_integer_value(sj_object_get_value(quest, "reward_value_1"), &reward_value_1);
+            sj_get_integer_value(sj_object_get_value(quest, "reward_value_2"), &reward_value_2);
+        } else {
+            reward_type = 0xFF;
+            reward_value_1 = 0xFF;
+            reward_value_2 = 0xFF;
+        }
+
+        quest_name = (char*)sj_get_string_value(sj_object_get_value(quest, "name"));
+        quest_description = (char*)sj_get_string_value(sj_object_get_value(quest, "description"));
 
         if(gfc_input_command_released("switch_weapon")){
             interaction_manager.interacting = NULL;
             return;
         } else if (gfc_input_command_released("fire_weapon")) {
             if(quest_manager_check_completion(quest_name) == 0xFF){
-                add_quest(quest_name, type, tag, complete);
-                activate_quest(quest_name);
+                add_quest(quest_id, quest_name, quest_description, type, tag, complete, reward_type, reward_value_1, reward_value_2);
+                activate_quest(quest_id);
             }
             interaction_manager.interacting = NULL;
             return;
         }
 
-    } else if (props->has_quest && quest_manager_check_completion(quest_name) == 0){
+    } else if (props->has_quest && quest_manager_check_completion(quest_id) == 0){
         if(gfc_input_command_released("fire_weapon")){
             interaction_manager.interacting = NULL;
             return;

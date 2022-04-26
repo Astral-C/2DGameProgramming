@@ -37,11 +37,13 @@ void inventory_manager_load(char* path);
 void inventory_add_consumable(ConsumableType type, Uint8 count);
 Uint8 inventory_use_consumable(ConsumableType type);
 
-void inventory_add_craft(CraftType type, Uint8 count);
+void inventory_add_craftable(CraftType type, Uint8 count);
 void inventory_try_craft(CraftType item_1, CraftType item_2);
 
 Sprite* inventory_manager_consumables_img();
 Sprite* inventory_manager_craftables_img();
+
+Sprite* inv_get_craftable_count(CraftType type);
 
 void inventory_show_consumables();
 void inventory_clear();

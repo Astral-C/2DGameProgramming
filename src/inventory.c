@@ -7,6 +7,9 @@ typedef struct {
     Uint8 craftables[CRAFTABLE_COUNT];
     Sprite* consumable_counts[CONSUMABLE_COUNT];
     Sprite* consumable_icons;
+    Sprite* craftable_counts[CRAFTABLE_COUNT];
+    Sprite* craftable_icons;
+
     List* items;
 } InventoryManager;
 
@@ -15,6 +18,7 @@ static InventoryManager inventory = {0};
 void inventory_init(){
     char num[3];
     inventory.consumable_icons = gf2d_sprite_load_all("images/potions.png", 128, 128, 5);
+    inventory.craftable_icons = gf2d_sprite_load_all("images/craftables.png", 128, 128, 4);
     //todo: load craftables
     inventory.items = gfc_list_new(); //fucking what??
     
@@ -26,6 +30,9 @@ void inventory_init(){
     
     for (size_t i = 0; i < CRAFTABLE_COUNT; i++){
         inventory.craftables[i] = 3;
+        snprintf(num, 3, "%d", inventory.craftables[i]);
+        inventory.craftable_counts[i] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
+
     }
 
     atexit(inventory_cleanup);
@@ -34,14 +41,6 @@ void inventory_init(){
 void inventory_cleanup(){
     if(inventory.consumable_icons) gf2d_sprite_free(inventory.consumable_icons);
     gfc_list_delete(inventory.items);
-}
-
-void inventory_manager_save(char* path){
-
-}
-
-void inventory_manager_load(char* path){
-
 }
 
 void inventory_add_consumable(ConsumableType type, Uint8 count){
@@ -70,13 +69,63 @@ Uint8 inventory_use_consumable(ConsumableType type){
 
 
 void inventory_add_craftable(CraftType type, Uint8 count){
+    char num[3];
     inventory.craftables[type] = (inventory.craftables[type] + count > 99 ? 99: inventory.craftables[type] + count);
+    
+    gf2d_sprite_free(inventory.craftable_counts[type]);
+
+    snprintf(num, 3, "%d", inventory.craftables[type]);
+    inventory.craftable_counts[type] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
 }
 
 void inventory_try_craft(CraftType item_1, CraftType item_2){
-    if(item_1 == RED && item_2 == BLUE){
-        inventory_add_consumable(HEALTH, 5);
+    char num[3];
+    int craft_success = 0;
+    if((inventory.craftables[item_1] <= 0 && inventory.craftables[item_2] <= 0) || (item_1 == item_2 && inventory.craftables[item_1] <= 1)){
+        return;
     }
+
+    if((item_1 == RED && item_2 == BLUE) || (item_1 == BLUE && item_2 == RED)){
+        inventory_add_consumable(HEALTH, 1); 
+        craft_success = 1;
+    }
+
+    if((item_1 == GREEN && item_2 == BLUE) || (item_1 == BLUE && item_2 == GREEN)){
+        inventory_add_consumable(SPEED, 1); 
+        craft_success = 1;
+    }
+
+    if(item_1 == BLUE && item_2 == BLUE){
+        inventory_add_consumable(STAMINA, 1); 
+        craft_success = 1;
+    }
+
+    if((item_1 == GREEN && item_2 == RED) || (item_1 == RED && item_2 == GREEN)) {
+        inventory_add_consumable(INVISIBILITY, 1); 
+        craft_success = 1;
+    }
+
+    if((item_1 == YELLOW && item_2 == RED) || (item_1 == RED && item_2 == YELLOW)){
+        inventory_add_consumable(TIME_FREEZE, 1); 
+        craft_success = 1;    
+    }
+
+    if(craft_success) {
+        inventory.craftables[item_1]--;
+        inventory.craftables[item_2]--;
+        
+        gf2d_sprite_free(inventory.craftable_counts[item_1]);
+        gf2d_sprite_free(inventory.craftable_counts[item_2]);
+        
+        snprintf(num, 3, "%d", inventory.craftables[item_1]);
+        inventory.craftable_counts[item_1] = ui_manager_render_text(num, (SDL_Color){255, 255, 255});
+        snprintf(num, 3, "%d", inventory.craftables[item_2]);
+        inventory.craftable_counts[item_2] = ui_manager_render_text(num, (SDL_Color){255, 255, 255}); 
+    }
+}
+
+Sprite* inv_get_craftable_count(CraftType type){
+    return inventory.craftable_counts[type];
 }
 
 void inventory_clear(){
@@ -147,4 +196,8 @@ void inventory_show_consumables(){
 
 Sprite* inventory_manager_consumables_img(){
     return inventory.consumable_icons;
+}
+
+Sprite* inventory_manager_craftables_img(){
+    return inventory.craftable_icons;
 }

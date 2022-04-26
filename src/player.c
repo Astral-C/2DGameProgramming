@@ -128,7 +128,7 @@ void player_think(Entity *self){
             pd->state = FALLING;
         }
 
-        if(gfc_input_key_released(" ")){
+        if(gfc_input_command_released("advance_text") && pd->on_floor && self->velocity.x == 0 && self->velocity.y == 0){
             npc_request_interaction();
             pd->state = INTERACTING;
         }
