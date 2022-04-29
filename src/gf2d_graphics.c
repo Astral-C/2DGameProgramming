@@ -209,7 +209,9 @@ void gf2d_graphics_frame_delay()
 
 void gf2d_grahics_next_frame()
 {
-    SDL_RenderPresent(gf2d_graphics.renderer);
+    if(gf2d_graphics.renderer != NULL){ //what?
+        SDL_RenderPresent(gf2d_graphics.renderer);
+    }
     gf2d_graphics_frame_delay();
 }
 

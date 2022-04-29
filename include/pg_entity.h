@@ -11,6 +11,7 @@ typedef enum {
     ENT_ENEMY,
     ENT_WEAPON,
     ENT_NPC,
+    ENT_INTERACTABLE
 } EntityType;
 
 typedef struct ENT_S {

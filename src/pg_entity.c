@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "gf2d_graphics.h"
 #include "enemy.h"
+#include "npc.h"
 
 #define DRAW_DEBUG false
 
@@ -83,12 +84,51 @@ void draw_entity(Entity* ent){
     }
 }
 
+void draw_entity_trail(Entity* ent){
+    if(ent == NULL) return;
+    if(ent->sprite == NULL) return;
+    Vector2D drawpos;
+    Vector2D cam_pos = get_camera_pos();
+    Vector4D color_overlay;
+    
+    if(ent->type == ENT_PLAYER){
+        color_overlay = vector4d(255, 255, 255, (ent->visible ? 255 : 255/2));
+    } else {
+        if(!entity_manager.draw_debug) color_overlay = vector4d(255, 255, 255, (ent->visible ? 255 : 0));
+    }
+
+    vector2d_add(drawpos, ent->position, ent->draw_offset);
+    vector2d_sub(drawpos, drawpos, cam_pos);
+    Vector2D temp_pos;
+    Vector4D temp_color;
+    vector2d_copy(temp_pos, drawpos);
+    vector4d_copy(temp_color, color_overlay);
+
+    for(int i = 0; i < 4; i++){
+        gf2d_sprite_draw(ent->sprite, temp_pos, &ent->scale, NULL, &ent->rotation, &ent->flip, &temp_color, (Uint32)ent->frame);
+        temp_color.w -= 80;
+        if(ent->velocity.x != 0){
+            temp_pos.x = drawpos.x - (i * ent->velocity.x);
+        }
+        if(ent->velocity.y != 0){
+            temp_pos.y = drawpos.y - (i * ent->velocity.y);
+        }
+    }
+    gf2d_sprite_draw(ent->sprite, drawpos, &ent->scale, NULL, &ent->rotation, &ent->flip, &color_overlay, (Uint32)ent->frame);
+}
+
 void entity_manager_draw_entities(){
     int i;
     for(i=0;i<entity_manager.max_entities;i++){
-        if(entity_manager.entity_list[i]._inuse){
+        if(entity_manager.entity_list[i]._inuse && &entity_manager.entity_list[i] != entity_manager.player){
             draw_entity(&entity_manager.entity_list[i]);
         }
+    }
+    
+    if(fabs(entity_manager.player->velocity.x) > 4){
+        draw_entity_trail(entity_manager.player);
+    } else {
+        draw_entity(entity_manager.player);
     }
 }
 
@@ -248,8 +288,9 @@ void entity_manager_kill_enemies(){
 
 void entity_manager_serialize(SJson* map){
     int i, type;
-    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy;
+    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy, *npcs;
     
+    npcs = sj_array_new();
     enemies = sj_array_new();
     spawners = sj_array_new();
     player_spawn = sj_array_new();
@@ -287,6 +328,13 @@ void entity_manager_serialize(SJson* map){
                 sj_array_append(player_spawn, sj_new_int(((int)ent->position.y) >> 2));
                 sj_object_insert(map, "player_spawn", player_spawn);
                 break;
+            
+            case ENT_NPC: {
+                NpcProps* p = (NpcProps*)ent->data;
+                //i apologize for this.
+                sj_array_append(npcs, sj_new_str((char*)sj_get_string_value(sj_object_get_value(p->npc_json, "npc_path"))));
+                break;
+            }
 
             default:
                 break;
@@ -295,4 +343,5 @@ void entity_manager_serialize(SJson* map){
     }
     sj_object_insert(map, "spawners", spawners);
     sj_object_insert(map, "enemies", enemies);
+    sj_object_insert(map, "npcs", npcs);
 }

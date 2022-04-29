@@ -133,6 +133,7 @@ Entity* npc_new(char* path){
     if(!npc) return NULL; //oops
 
     props->npc_json = npc_def;
+    sj_object_insert(npc_def, "npc_path", sj_new_str(path));
 
     npc->think = npc_think;
     npc->cleanup = npc_cleanup;

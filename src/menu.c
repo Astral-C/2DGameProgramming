@@ -52,6 +52,7 @@ static Entity* prev_selected = NULL;
 static Sprite* start_bg = NULL;
 static PauseMenus current_pause_menu = 0;
 static struct nk_scroll quest_scroll;
+static Vector2D cursor;
 
 static const char* enemy_types[] = {
 	"Bat",
@@ -163,6 +164,8 @@ void init_menu(){
 	is_paused = 0;
 
 	start_bg = gf2d_sprite_load_image("images/main_menu.png");
+
+	cursor = vector2d(100,100);
 
 	EnemyConfigs = get_enemy_configs();
 
@@ -397,7 +400,7 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 			nk_style_pop_vec2(ctx);
 		nk_style_pop_color(ctx);
 		nk_style_pop_style_item(ctx);
-		
+
 		return;
 	}
 
@@ -487,6 +490,8 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 					nk_property_float(ctx, "wh", 0, &MapEditor.selected_warp->area.size.y, current_map_height(), 16, 16);
 					nk_property_int(ctx, "Dest Warp", 0, &MapEditor.selected_warp->dest_warp, 100, 1, 1);
 					nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.selected_warp->load_map, sizeof(TextLine), nk_filter_default);                    
+					nk_layout_row_dynamic(ctx, 32, 1);
+					nk_checkbox_label(ctx, "Locked", &MapEditor.selected_warp->locked);
 				} else {
 					nk_property_float(ctx, "wx", 0, &MapEditor.new_warp.area.pos.x, current_map_width(), 16, 16);
 					nk_property_float(ctx, "wy", 0, &MapEditor.new_warp.area.pos.y, current_map_height(), 16, 16);
@@ -494,6 +499,8 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 					nk_property_float(ctx, "wh", 0, &MapEditor.new_warp.area.size.y, current_map_height(), 16, 16);
 					nk_property_int(ctx, "Dest Warp", 0, &MapEditor.new_warp.dest_warp, 100, 1, 1);
 					nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, MapEditor.new_warp.load_map, sizeof(TextLine), nk_filter_default);
+					nk_layout_row_dynamic(ctx, 32, 1);
+					nk_checkbox_label(ctx, "Locked", &MapEditor.new_warp.locked);
 				}
 				nk_tree_pop(ctx);
 			}
@@ -956,7 +963,9 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 		nk_style_pop_vec2(ctx);
 		nk_style_pop_color(ctx);
 		nk_style_pop_style_item(ctx);
+
 	}
+
 }
 
 int game_paused(){

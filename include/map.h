@@ -16,6 +16,7 @@ typedef struct  {
     TextLine load_map;
     Rect area;
     int dest_warp;
+    int locked;
 } Warp;
 
 typedef struct {
@@ -71,6 +72,8 @@ int current_map_width();
 int current_map_height();
 
 void try_warp(Rect r);
+void map_manager_unlock_warp(int warp);
+
 void map_manager_update();
 void map_manager_play_bgm();
 Vector2D map_get_player_spawn();

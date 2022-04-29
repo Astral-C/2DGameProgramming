@@ -148,9 +148,9 @@ void player_think(Entity *self){
         }
 
         if(left_held){
-            self->velocity.x = (pd->active_effect == SPEED ? -9 : -4);
+            self->velocity.x = (pd->active_effect == SPEED ? -6 : -4);
         } else if (right_held){
-            self->velocity.x = (pd->active_effect == SPEED ? 9 : 4);
+            self->velocity.x = (pd->active_effect == SPEED ? 6 : 4);
         }
         
         if(self->velocity.x > 0){
@@ -172,9 +172,9 @@ void player_think(Entity *self){
         self->frame = 4;
         
         if(left_held){
-            self->velocity.x = (pd->active_effect == SPEED ? -9 : -4);
+            self->velocity.x = (pd->active_effect == SPEED ? -6 : -4);
         } else if (right_held){
-            self->velocity.x = (pd->active_effect == SPEED ? 9 : 4);
+            self->velocity.x = (pd->active_effect == SPEED ? 6 : 4);
         }
         
         if(!strafing){

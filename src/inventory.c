@@ -10,7 +10,6 @@ typedef struct {
     Sprite* craftable_counts[CRAFTABLE_COUNT];
     Sprite* craftable_icons;
 
-    List* items;
 } InventoryManager;
 
 static InventoryManager inventory = {0};
@@ -20,7 +19,6 @@ void inventory_init(){
     inventory.consumable_icons = gf2d_sprite_load_all("images/potions.png", 128, 128, 5);
     inventory.craftable_icons = gf2d_sprite_load_all("images/craftables.png", 128, 128, 4);
     //todo: load craftables
-    inventory.items = gfc_list_new(); //fucking what??
     
     for (size_t i = 0; i < CONSUMABLE_COUNT; i++){
         inventory.consumables[i] = 3;
@@ -40,7 +38,6 @@ void inventory_init(){
 
 void inventory_cleanup(){
     if(inventory.consumable_icons) gf2d_sprite_free(inventory.consumable_icons);
-    gfc_list_delete(inventory.items);
 }
 
 void inventory_add_consumable(ConsumableType type, Uint8 count){
@@ -144,7 +141,6 @@ void inventory_clear(){
         inventory.craftables[i] = 0;
     }
 
-    gfc_list_delete(inventory.items);
 }
 
 void inventory_load(int consumables[CONSUMABLE_COUNT], int craftables[CRAFTABLE_COUNT]){

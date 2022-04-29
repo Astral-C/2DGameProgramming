@@ -8,6 +8,7 @@
 #include "audio.h"
 #include "menu.h"
 #include "pg_ui.h"
+#include "interactable.h"
 
 typedef struct {
     Uint8 editing;
@@ -77,8 +78,6 @@ void map_load(char* map_def){
 
     gfc_line_cpy(map_manager.map_jsn_path, map_def);
 
-    /* Note: I may change this later to build the map from a tiled json export, we'll see */
-
     char* map_name = (char*)sj_get_string_value(sj_object_get_value(jsn, "name"));
     char* map_fg = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_fg"));
     char* map_deco = (char*)sj_get_string_value(sj_object_get_value(jsn, "map_deco"));
@@ -138,6 +137,7 @@ void map_load(char* map_def){
         SJson* warp = sj_array_get_nth(warps, cr);        
         Warp* nwarp = &map_manager.current_map.warps[cr];
         char* warp_path = (char*)sj_get_string_value(sj_object_get_value(warp, "map"));
+        int islcked = 0;
         
         strncpy(nwarp->load_map, warp_path, sizeof(TextLine));
 
@@ -155,6 +155,13 @@ void map_load(char* map_def){
         sj_get_integer_value(sj_array_get_nth(rect, 1), &y);
         sj_get_integer_value(sj_array_get_nth(rect, 2), &w);
         sj_get_integer_value(sj_array_get_nth(rect, 3), &h);
+
+        SJson* locked = sj_object_get_value(warp, "locked");
+        if(locked != NULL){
+            sj_get_integer_value(locked, &nwarp->locked);
+        }  else {
+            nwarp->locked = 0;
+        }
 
         nwarp->area = (Rect){{x << 2, y << 2}, {w << 2, h << 2}};
     }
@@ -235,6 +242,9 @@ void map_load(char* map_def){
         npc_new(path);
     }
 
+    spawn_weight_platforms(vector2d(960, 960), vector2d(1500, 960), 100);
+    spawn_unlock_door_button(vector2d(1300, 960), 1);
+    spawn_crate(vector2d(1400, 320), 0.5, 0);
 
     if(map_manager.current_map.foreground){
         gf2d_sprite_free(map_manager.current_map.foreground);
@@ -274,6 +284,13 @@ void map_load(char* map_def){
 
     sj_free(jsn);
 
+
+}
+
+void map_manager_unlock_warp(int warp){
+    if(warp < map_manager.current_map.warp_count && map_manager.current_map.warps[warp].locked){
+        map_manager.current_map.warps[warp].locked = 0;
+    }
 }
 
 void map_new(){
@@ -326,6 +343,7 @@ void map_save(char* path){
         sj_object_insert(cur_warp, "map", sj_new_str(r->load_map));
         sj_object_insert(cur_warp, "box", cur_rect);
         sj_object_insert(cur_warp, "dest_warp", sj_new_int(r->dest_warp));
+        sj_object_insert(cur_warp, "locked", sj_new_int(r->locked));
         sj_array_append(warps, cur_warp);
     }
     sj_object_insert(map, "warps", warps);
@@ -402,7 +420,7 @@ void map_manager_update(){
 void try_warp(Rect r){
     for (size_t i = 0; i < map_manager.current_map.warp_count; i++){
         Warp* wrp = &map_manager.current_map.warps[i];//gfc_list_get_nth(map_manager.current_map.warps, i);
-        if(rect_collider(wrp->area, r)){
+        if(rect_collider(wrp->area, r) && wrp->locked == 0){
             map_manager.should_warp = 1;
             memcpy(&map_manager.warp_target, wrp, sizeof(Warp));
             break;
