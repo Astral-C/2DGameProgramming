@@ -19,6 +19,9 @@ void init_audio_sys(){
 	target_format.userdata = NULL;
 
 	sys.device = SDL_OpenAudioDevice(NULL, 0, &target_format, &sys.device_format, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+
+	gfc_audio_init(20, 2, 2, 1, 0, 0);
+	
 	atexit(exit_audio_sys);
 }
 

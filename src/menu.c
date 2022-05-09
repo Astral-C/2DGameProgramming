@@ -7,6 +7,7 @@
 #include "player.h"
 #include "enemy.h"
 #include "inventory.h"
+#include "interactable.h"
 #include "npc.h"
 #include "audio.h"
 #include "camera.h"
@@ -63,6 +64,14 @@ static const char* enemy_types[] = {
 	"Spawner"
 };
 
+static const char* interactable_types[] = {
+	"Crate",
+	"Scale Platforms",
+	"Door Unlocker",
+	"Timer Platforms",
+	"Falling Platforms"
+};
+
 static const char* quest_types[] = {
 	"Kill Enemies", 
 	"Enable Flag"
@@ -104,7 +113,8 @@ static struct {
 
 	Rect new_collision;
 	Warp new_warp;
-	int spawn_type;
+	int enemy_spawn_type;
+	int interactable_spawn_type;
 } MapEditor = {0};
 
 static const char* craft_type_names[4] = {"Red Root", "Green Root", "Blue Root", "Yellow Root"};
@@ -427,7 +437,7 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 	}
 
 	if(debug_menu_enabled){
-		if (nk_begin(ctx, "Debug", nk_rect(50, 50, 230, 250), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE)){
+		if (nk_begin(ctx, "Debug", nk_rect(50, 50, 230, 250), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE|NK_WINDOW_CLOSABLE)){
 			nk_layout_row_dynamic(ctx, 32, 2);
 
 			if(nk_button_label(ctx, "Pause/Play")){
@@ -505,29 +515,26 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 				nk_tree_pop(ctx);
 			}
 
-			if(nk_tree_push(ctx, NK_TREE_TAB, "Entity", NK_MINIMIZED)){
-				nk_label(ctx, "Entity Type", NK_TEXT_ALIGN_LEFT);
-				MapEditor.spawn_type = nk_combo(ctx, enemy_types, ENEMY_TYPE_COUNT, MapEditor.spawn_type, 25, nk_vec2(100,100));
+			if(nk_tree_push(ctx, NK_TREE_TAB, "Enemy", NK_MINIMIZED)){
+				nk_label(ctx, "Enemy Type", NK_TEXT_ALIGN_LEFT);
+				MapEditor.enemy_spawn_type = nk_combo(ctx, enemy_types, ENEMY_TYPE_COUNT, MapEditor.enemy_spawn_type, 25, nk_vec2(300,150));
 				if(nk_button_label(ctx, "Add")){
 					Entity* new_ent = NULL;
-					switch (MapEditor.spawn_type){
-					case ENEMY_BAT:
+					switch (MapEditor.enemy_spawn_type){
+					case 0:
 						new_ent = bat_new();
 						break;
-					case ENEMY_SKULL:
+					case 1:
 						new_ent = skull_new();
 						break;
-					case ENEMY_GOLEM:
+					case 2:
 						new_ent = golem_new();
 						break;
-					case ENEMY_MUSHROOM:
+					case 3:
 						new_ent = mushroom_new();
 						break;
-					case ENEMY_MAGICIAN:
+					case 4:
 						new_ent = magician_new();
-						break;
-					case ENEMY_SPAWNER:
-						new_ent = enemy_spawner_new(ENEMY_BAT, 0, 0, 0);
 						break;
 					
 					default:
@@ -540,6 +547,44 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 					spawn_pos.y += 720/2;
 					vector2d_copy(new_ent->position, spawn_pos);
 					vector2d_copy(new_ent->hurtbox.pos, new_ent->position);
+
+				}
+				nk_tree_pop(ctx);
+			}
+
+			if(nk_tree_push(ctx, NK_TREE_TAB, "Interactable", NK_MINIMIZED)){
+				nk_label(ctx, "Interactale Type", NK_TEXT_ALIGN_LEFT);
+				MapEditor.interactable_spawn_type = nk_combo(ctx, interactable_types, INTERACTABLE_TYPE_COUNT, MapEditor.interactable_spawn_type, 25, nk_vec2(300,150));
+				if(nk_button_label(ctx, "Add")){
+					
+					Vector2D spawn_pos;
+					spawn_pos = get_camera_pos();
+					spawn_pos.x += 1200/2;
+					spawn_pos.y += 720/2;
+
+					switch (MapEditor.interactable_spawn_type){
+					case CRATE:
+						spawn_crate(spawn_pos, 5, 0);
+						break;
+					case SCALE_PLATFORM:{
+						Vector2D spawn_pos_2;
+						vector2d_add(spawn_pos_2, spawn_pos, vector2d(64, 0));
+						spawn_weight_platforms(spawn_pos, spawn_pos_2, 100);
+						break;
+					}
+					case DOOR_BUTTON:
+						spawn_unlock_door_button(spawn_pos, 0);
+						break;
+					case TIMER_PLATFORM_BUTTON:
+						spawn_timed_platforms_new(spawn_pos, 5);
+						break;
+					case FALLING_PLATFORM:
+						spawn_falling_platform(spawn_pos, 200);
+						break;
+					
+					default:
+						break;
+					}
 
 				}
 				nk_tree_pop(ctx);
@@ -880,6 +925,64 @@ void menu_update(int* gamestate){ //Because the menu system can change the state
 						sj_save(props->npc_json, resource_location);
 					}
 					break;
+				}
+
+				case ENT_INTERACTABLE: {
+					InteractableType e = *((InteractableType*)current->data);
+					switch (e){
+					case CRATE: {
+						CrateData* d = (CrateData*)current->data;
+						nk_layout_row_dynamic(ctx, 32, 1);
+						nk_property_int(ctx, "Health", 1, &current->health, 255, 1, 1);
+						d->drop = nk_combo(ctx, craft_type_names, CRAFTABLE_COUNT, d->drop, 25, nk_vec2(300,150));
+						nk_property_float(ctx, "Weight", 1, &d->weight, 100, 1, 1);
+						break;
+					}
+
+					case FALLING_PLATFORM: {
+						FallingPlatformData* d = (FallingPlatformData*)current->data;
+						nk_layout_row_dynamic(ctx, 32, 1);
+						nk_property_float(ctx, "Time Before Fall", 1, &d->time_before_fall, 600, 1, 1);
+						break;
+					}
+					
+					case SCALE_PLATFORM: {
+						WeightedPlatformData* d = (WeightedPlatformData*)current->data;
+						nk_layout_row_dynamic(ctx, 32, 1);
+						nk_property_float(ctx, "Max Drop", 1, &d->max_drop, 200, 1, 1);
+
+						WeightedPlatformData* d2 = (WeightedPlatformData*)current->owner->data;
+						d2->max_drop = d->max_drop;
+
+						break;
+					}
+
+					case DOOR_BUTTON:{
+						WarpUnlockData* d = (WarpUnlockData*)current->data;
+						nk_layout_row_dynamic(ctx, 32, 1);
+						nk_property_int(ctx, "Unlock Warp", 1, &d->warp, map_manager_get_warp_count(), 1, 1);
+						break;
+					}
+
+					case TIMER_PLATFORM_BUTTON:{
+						TimePlatformButtonData* d = (TimePlatformButtonData*)current->data;
+						nk_layout_row_dynamic(ctx, 32, 1);
+						nk_property_int(ctx, "Appear Time Max", 1, &d->time_max, 1000, 1, 1);
+						break;
+					}
+					
+					case TIMER_PLATFORM : {
+						TimedPlatformData* d = (TimedPlatformData*)current->data;
+						nk_layout_row_dynamic(ctx, 32, 1);
+						nk_property_int(ctx, "Floats", 1, &d->move, 600, 1, 1);
+						nk_property_int(ctx, "Float Amplitude", 1, &d->amplitude, 600, 1, 1);
+						nk_property_float(ctx, "Float Seq Offset", 1, &d->offset, 600, 1, 1);
+						break;
+					}
+
+					default:
+						break;
+					}
 				}
 
 				default:

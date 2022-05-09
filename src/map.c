@@ -63,6 +63,10 @@ void map_cleanup(){
     map_manager.current_map.warp_count = 0;
 }
 
+int map_manager_get_warp_count(){
+    return map_manager.current_map.warp_count;
+}
+
 void map_load(char* map_def){
 
     SJson* jsn;
@@ -95,6 +99,7 @@ void map_load(char* map_def){
     SJson* collision = sj_object_get_value(jsn, "collision");
     SJson* spawners = sj_object_get_value(jsn, "spawners");
     SJson* enemies = sj_object_get_value(jsn, "enemies");
+    SJson* interactables = sj_object_get_value(jsn, "interactables");
     SJson* npcs = sj_object_get_value(jsn, "npcs");
     SJson* warps = sj_object_get_value(jsn, "warps");
 
@@ -137,7 +142,6 @@ void map_load(char* map_def){
         SJson* warp = sj_array_get_nth(warps, cr);        
         Warp* nwarp = &map_manager.current_map.warps[cr];
         char* warp_path = (char*)sj_get_string_value(sj_object_get_value(warp, "map"));
-        int islcked = 0;
         
         strncpy(nwarp->load_map, warp_path, sizeof(TextLine));
 
@@ -242,9 +246,70 @@ void map_load(char* map_def){
         npc_new(path);
     }
 
-    spawn_weight_platforms(vector2d(960, 960), vector2d(1500, 960), 100);
-    spawn_unlock_door_button(vector2d(1300, 960), 1);
-    spawn_crate(vector2d(1400, 320), 0.5, 0);
+    //spawn_weight_platforms(vector2d(960, 960), vector2d(1500, 960), 100);
+    //spawn_unlock_door_button(vector2d(1300, 960), 1);
+    //spawn_crate(vector2d(1400, 320), 0.5, 0);
+    //spawn_timed_platforms_new(vector2d(1800, 360), 4);
+    //spawn_timed_platforms(vector2d(1800, 360), 1000);
+
+    int interactable_count = sj_array_get_count(interactables);
+        
+    for (int cr = 0; cr < interactable_count; cr++){
+        SJson* interactable = sj_array_get_nth(interactables, cr);
+        int type, x, y;
+
+        sj_get_integer_value(sj_object_get_value(interactable, "type"), &type);
+
+        SJson* position = sj_object_get_value(interactable, "position");
+        sj_get_integer_value(sj_array_get_nth(position, 0), &x);
+        sj_get_integer_value(sj_array_get_nth(position, 1), &y);
+
+        Vector2D pos;
+        pos.x = (float)(x << 2);
+        pos.y = (float)(y << 2);
+
+        switch (type){
+            case CRATE:{
+                int weight, craft_drop;
+                sj_get_integer_value(sj_object_get_value(interactable, "weight"), &weight);
+                sj_get_integer_value(sj_object_get_value(interactable, "drop"), &craft_drop);
+                spawn_crate(pos, weight, craft_drop % CRAFTABLE_COUNT);
+                break;
+            }
+
+            case SCALE_PLATFORM: {
+                int max_dist;
+                SJson* position = sj_object_get_value(interactable, "position_plat2");
+                sj_get_integer_value(sj_array_get_nth(position, 0), &x);
+                sj_get_integer_value(sj_array_get_nth(position, 1), &y);
+                Vector2D pos2;
+                pos2.x = (float)(x << 2);
+                pos2.y = (float)(y << 2);
+                sj_get_integer_value(sj_object_get_value(interactable, "max_drop"), &max_dist);
+                spawn_weight_platforms(pos, pos2, max_dist);
+                break;
+            }
+
+            case DOOR_BUTTON: {
+                int warp_to_unlock;
+                sj_get_integer_value(sj_object_get_value(interactable, "unlock"), &warp_to_unlock);
+                spawn_unlock_door_button(pos, warp_to_unlock);
+                break;
+            }
+
+            case TIMER_PLATFORM_BUTTON: {
+                spawn_timed_platforms(pos, interactable);
+                break;
+            }
+            
+            case FALLING_PLATFORM:{
+                int time_before_fall;
+                sj_get_integer_value(sj_object_get_value(interactable, "time_before_fall"), &time_before_fall);
+                spawn_falling_platform(pos, time_before_fall);
+                break;
+            }
+        }
+    }
 
     if(map_manager.current_map.foreground){
         gf2d_sprite_free(map_manager.current_map.foreground);

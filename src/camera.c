@@ -4,7 +4,7 @@
 #include "simple_logger.h"
 #include "map.h"
 
-#define cam_speed 0.8f //this shuld be a var but for now
+#define cam_speed 1.0f //this shuld be a var but for now
 
 struct Camera cam = {0};
 

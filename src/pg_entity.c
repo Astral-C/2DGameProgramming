@@ -3,6 +3,8 @@
 #include "camera.h"
 #include "gf2d_graphics.h"
 #include "enemy.h"
+#include "interactable.h"
+#include "player.h"
 #include "npc.h"
 
 #define DRAW_DEBUG false
@@ -64,6 +66,14 @@ void draw_entity(Entity* ent){
     vector2d_add(drawpos, ent->position, ent->draw_offset);
     vector2d_sub(drawpos, drawpos, cam_pos);
     gf2d_sprite_draw(ent->sprite, drawpos, &ent->scale, NULL, &ent->rotation, &ent->flip, &color_overlay, (Uint32)ent->frame);
+
+    PlayerData* data = (PlayerData*)ent->data;
+    if(ent == entity_manager.player && data->whip_timer > 0){
+        Vector2D whip_pos = drawpos;
+        whip_pos.x += (40 * (data->direction ? -1 : 1));
+        whip_pos.y += 24;
+        gf2d_sprite_draw(data->whip_sprite, whip_pos,  NULL, NULL, NULL, &ent->flip, NULL, (Uint32)data->whip_frame);
+    }
 
     if(entity_manager.draw_debug && gf2d_graphics_get_renderer()){
         SDL_FRect db;
@@ -288,11 +298,12 @@ void entity_manager_kill_enemies(){
 
 void entity_manager_serialize(SJson* map){
     int i, type;
-    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy, *npcs;
+    SJson* enemies, *spawners, *player_spawn, *ent_spawn, *enemy, *npcs, *interactables, *interactable;
     
     npcs = sj_array_new();
     enemies = sj_array_new();
     spawners = sj_array_new();
+    interactables = sj_array_new();
     player_spawn = sj_array_new();
 
     for(i=0;i<entity_manager.max_entities;i++){
@@ -336,6 +347,75 @@ void entity_manager_serialize(SJson* map){
                 break;
             }
 
+            case ENT_INTERACTABLE: {
+                int should_append = 1;
+                interactable = sj_object_new();
+                InteractableType type = *(InteractableType*)ent->data;
+                sj_object_insert(interactable, "type", sj_new_int(type));
+                
+                ent_spawn = sj_array_new();
+                sj_array_append(ent_spawn, sj_new_int(((int)ent->position.x) >> 2));
+                sj_array_append(ent_spawn, sj_new_int(((int)ent->position.y) >> 2));
+                sj_object_insert(interactable, "position", ent_spawn);
+
+                switch (type){
+                case CRATE:{
+                    CrateData* d = (CrateData*)ent->data;
+                    sj_object_insert(interactable, "weight", sj_new_int(d->weight));
+                    sj_object_insert(interactable, "drop", sj_new_int(d->drop));
+                    break;
+                }
+
+                case SCALE_PLATFORM: {
+                    WeightedPlatformData* d = (WeightedPlatformData*)ent->data;
+                    sj_object_insert(interactable, "max_drop", sj_new_int(d->max_drop));
+
+                    ent_spawn = sj_array_new();
+                    sj_array_append(ent_spawn, sj_new_int(((int)ent->owner->position.x) >> 2));
+                    sj_array_append(ent_spawn, sj_new_int(((int)ent->owner->position.y) >> 2));
+                    sj_object_insert(interactable, "position_plat2", ent_spawn);
+
+                    break;
+                }
+
+                case DOOR_BUTTON:{
+                    WarpUnlockData* d = (WarpUnlockData*)ent->data;
+                    sj_object_insert(interactable, "unlock", sj_new_int(d->warp));
+                    break;
+                }
+
+                case TIMER_PLATFORM_BUTTON:{
+                    TimePlatformButtonData* d = (TimePlatformButtonData*)ent->data;
+                    sj_object_insert(interactable, "max_time", sj_new_int(d->time_max));
+                    sj_object_insert(interactable, "platforms", sj_array_new());
+                    d->write_json = interactable; // awful!
+                    break;
+                }
+                
+                case TIMER_PLATFORM : {
+                    should_append = 0;
+                    TimedPlatformData* d = (TimedPlatformData*)ent->data;
+                    sj_object_insert(interactable, "should_float", sj_new_int(d->move));
+                    sj_object_insert(interactable, "float_amplitude", sj_new_int(d->amplitude));
+                    sj_object_insert(interactable, "float_offset", sj_new_float(d->offset));
+                    TimePlatformButtonData* button_data = (TimePlatformButtonData*)ent->owner->data;
+                    printf("Saving timer platform at pos %f %f\n", ent->position.x, ent->position.y);
+                    sj_array_append(sj_object_get_value(button_data->write_json, "platforms"), interactable);
+                    break;
+                }
+
+                case FALLING_PLATFORM: {
+                    FallingPlatformData* d = (FallingPlatformData*)ent->data;
+                    sj_object_insert(interactable, "time_before_fall", sj_new_int(d->time_before_fall));
+                    break;
+                }
+
+                default:
+                    break;
+                }
+                if(should_append) sj_array_append(interactables, interactable);
+            }
+
             default:
                 break;
             }
@@ -343,5 +423,6 @@ void entity_manager_serialize(SJson* map){
     }
     sj_object_insert(map, "spawners", spawners);
     sj_object_insert(map, "enemies", enemies);
+    sj_object_insert(map, "interactables", interactables);
     sj_object_insert(map, "npcs", npcs);
 }

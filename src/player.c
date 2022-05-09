@@ -13,14 +13,6 @@
 #include <math.h>
 
 typedef enum {
-    BOMB,
-    KNIFE,
-    AXE,
-    SHUR,
-    WEAPON_COUNT
-} Weapon;
-
-typedef enum {
     IDLE,
     WALK,
     FALLING,
@@ -28,27 +20,9 @@ typedef enum {
     INTERACTING
 } PlayerState;
 
-typedef struct {
-    Uint8 money_dirty;
-    Uint32 money;
-    Sprite* money_sprite;
-} PlayerWallet;
-
-typedef struct {
-    Uint8 on_floor; // 1
-    Uint16 effect_time; // 3
-    ConsumableType active_effect; // 7
-
-    PlayerState state; // 11
-    int direction; // 15
-    int fight_timer;
-    int is_fighting;
-    int whip_timer;
-    float stamina; // 19
-    Weapon active_weapon; // 23
-} PlayerData;
-
 static PlayerWallet wallet = {.money = 10, .money_dirty = 1, .money_sprite = NULL};
+static Sound* whipsound;
+static Sound* jumpsound;
 
 void player_add_money(int amount){
     wallet.money_dirty = 1;
@@ -120,11 +94,12 @@ void player_think(Entity *self){
         }
 
         if(up_held){
+            gfc_sound_play(jumpsound, 1, 0.85, 1, -1);
             self->velocity.y -= 10;
             pd->state = FALLING;
         }
 
-        if(self->velocity.y != 0){
+        if(self->velocity.y != 0 || !pd->on_floor){
             pd->state = FALLING;
         }
 
@@ -162,6 +137,7 @@ void player_think(Entity *self){
         }
 
         if(self->velocity.y == 0 && up_held){
+            gfc_sound_play(jumpsound, 1, 0.85, 1, -1);
             self->velocity.y -= 10;
             pd->state = FALLING;
         }
@@ -217,9 +193,10 @@ void player_think(Entity *self){
         }
 
         if(gfc_input_command_released("fire_weapon") && pd->stamina > 0){
+            gfc_sound_play(whipsound, 1, 0.85, 0, -1);
             int dir = (pd->direction ? -1 : 1);
             Entity* w = NULL;
-            pd->fight_timer -= 25;
+            pd->fight_timer -= 50;
             switch (pd->active_weapon)
             {
             case BOMB:
@@ -257,20 +234,28 @@ void player_think(Entity *self){
 
         }
 
-        if(gfc_input_command_released("whip")){
-            pd->whip_timer = 100;
+        if(gfc_input_command_released("whip") && pd->whip_timer == 0){
+            pd->whip_timer = 50;
+            pd->whip_frame = 0.0f;
+            //play whip
+            gfc_sound_play(whipsound, 1, 0.85, 0, -1);
+            pd->fight_timer -= 75;
         }
 
         if(pd->whip_timer > 0){
-            self->frame = 5;
-            pd->whip_timer -= 10;
+            if(pd->whip_frame < 4){
+                pd->whip_frame += 0.25;
+            } else {
+                pd->whip_frame = 4;
+            }
+            pd->whip_timer--;
             Rect whip_hb = self->hurtbox;
             whip_hb.pos.x += (32 * (pd->direction ? -1 : 1));
             whip_hb.pos.y += 32;
             whip_hb.size.y = 16;
             Entity* other = get_colliding_r(whip_hb, self);
-            if(other){
-                other->health -= 10;
+            if(pd->whip_timer % 10 == 0 && other){
+                other->health -= 1;
             }
         }
     }
@@ -300,13 +285,20 @@ void player_think(Entity *self){
         audio_open_mod("audio/musix-shine.mod");
         audio_play_mod();
         pd->is_fighting = 1;
-    } else if(pd->fight_timer < 200){
+    } else if(pd->fight_timer < 300){
         pd->fight_timer += 1;
-    } else if(pd->is_fighting && pd->fight_timer == 200){
+    } else if(pd->is_fighting && pd->fight_timer == 300){
         pd->is_fighting = 0;
         map_manager_play_bgm();
     }
 
+}
+
+void player_cleanup(Entity* self){
+    PlayerData* pd = (PlayerData*)self->data;    
+    if(pd->whip_sprite){
+        gf2d_sprite_free(pd->whip_sprite);
+    }
 }
 
 Entity* player_new(){
@@ -317,13 +309,19 @@ Entity* player_new(){
         return false;
     }
 
+    whipsound = gfc_sound_load("audio/03.wav", 0.85, 1);
+    jumpsound = gfc_sound_load("audio/02.wav", 0.85, 1);
+
     ui_manager_add_progressi(vector2d(105, 20), vector4d(0x50, 0x80, 0x60, 0xFF), 100, &plyr->health);
     ui_manager_add_progressf(vector2d(105, 55), vector4d(0x30, 0x80, 0xc0, 0xFF), 100, &pd->stamina);
 
     plyr->type = ENT_PLAYER;
 
     plyr->sprite = gf2d_sprite_load_all("images/plyr_sheet.png",16, 16, 18);
+    pd->whip_sprite = gf2d_sprite_load_all("images/whip.png", 64, 32, 5);
+    pd->whip_frame = 0;
     plyr->think = player_think;
+    plyr->cleanup = player_cleanup;
     
     plyr->scale = vector2d(4,4);
     pd->state = FALLING;
@@ -334,7 +332,6 @@ Entity* player_new(){
     pd->fight_timer = 200;
     pd->is_fighting = 0;
     plyr->hurtbox = (Rect){{plyr->position.x, plyr->position.y}, {64, 64}};
-
     pd->on_floor = 0;
 
     plyr->velocity.y = 1;
